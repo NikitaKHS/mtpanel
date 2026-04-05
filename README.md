@@ -6,16 +6,16 @@ Self-hosted control panel for **TeleMT** (`Go + SvelteKit + SQLite + systemd`).
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](#)
 [![Service: systemd](https://img.shields.io/badge/service-systemd-green.svg)](#)
 
-## Languages
-
-- [Russian version](README.ru.md)
-- [English version](README.en.md)
-
 ## Quick Start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash
 ```
+
+## Languages
+
+- [Russian version](README.ru.md)
+- [English version](README.en.md)
 
 ## Screenshots
 
