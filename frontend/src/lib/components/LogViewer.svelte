@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { api } from '$lib/api';
 
@@ -58,7 +58,7 @@
 				setTimeout(scrollToBottom, 50);
 			}
 		} catch (e: unknown) {
-			error = e instanceof Error ? e.message : 'Failed to load logs';
+			error = e instanceof Error ? e.message : 'Не удалось загрузить логи';
 		} finally {
 			loading = false;
 		}
@@ -95,7 +95,6 @@
 		else stopAutoRefresh();
 	});
 
-	// Refetch when filter changes
 	$effect(() => {
 		void level;
 		void lines;
@@ -112,15 +111,10 @@
 </script>
 
 <div class="flex flex-col h-full gap-3">
-	<!-- Toolbar -->
 	<div class="flex flex-wrap items-center gap-3">
 		<div class="flex items-center gap-2">
-			<label class="text-xs text-gray-400" for="log-level">Level</label>
-			<select
-				id="log-level"
-				bind:value={level}
-				class="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-			>
+			<label class="text-xs text-gray-400" for="log-level">Уровень</label>
+			<select id="log-level" bind:value={level} class="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500">
 				{#each levelOptions as opt}
 					<option value={opt}>{opt}</option>
 				{/each}
@@ -128,12 +122,8 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<label class="text-xs text-gray-400" for="log-lines">Lines</label>
-			<select
-				id="log-lines"
-				bind:value={lines}
-				class="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-			>
+			<label class="text-xs text-gray-400" for="log-lines">Строк</label>
+			<select id="log-lines" bind:value={lines} class="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500">
 				{#each lineOptions as opt}
 					<option value={opt}>{opt}</option>
 				{/each}
@@ -141,48 +131,25 @@
 		</div>
 
 		<label class="flex items-center gap-2 cursor-pointer text-xs text-gray-400">
-			<input
-				type="checkbox"
-				bind:checked={autoRefresh}
-				class="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-900"
-			/>
-			Auto-refresh
+			<input type="checkbox" bind:checked={autoRefresh} class="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-900" />
+			Автообновление
 		</label>
 
-		<button
-			onclick={fetchLogs}
-			disabled={loading}
-			class="ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 disabled:opacity-50 transition-colors"
-		>
-			<svg class="w-3.5 h-3.5 {loading ? 'animate-spin' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-					d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-			</svg>
-			Refresh
+		<button onclick={fetchLogs} disabled={loading} class="ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 disabled:opacity-50 transition-colors">
+			Обновить
 		</button>
 
-		<button
-			onclick={scrollToBottom}
-			class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-colors"
-		>
-			<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-			</svg>
-			Bottom
+		<button onclick={scrollToBottom} class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 transition-colors">
+			Вниз
 		</button>
 	</div>
 
-	<!-- Log area -->
 	{#if error}
 		<div class="flex-1 flex items-center justify-center text-sm text-red-400">{error}</div>
 	{:else}
-		<div
-			bind:this={logContainer}
-			onscroll={handleScroll}
-			class="flex-1 overflow-y-auto bg-gray-950 border border-gray-800 rounded-lg p-3 font-mono text-xs leading-5 min-h-0"
-		>
+		<div bind:this={logContainer} onscroll={handleScroll} class="flex-1 overflow-y-auto bg-gray-950 border border-gray-800 rounded-lg p-3 font-mono text-xs leading-5 min-h-0">
 			{#if logLines.length === 0 && !loading}
-				<p class="text-gray-600 text-center py-8">No log entries found</p>
+				<p class="text-gray-600 text-center py-8">Записей логов пока нет</p>
 			{:else}
 				{#each logLines as line, i}
 					<div class="hover:bg-gray-900/50 px-1 rounded {lineClass(line)}">
@@ -193,5 +160,5 @@
 		</div>
 	{/if}
 
-	<div class="text-xs text-gray-600">{logLines.length} lines</div>
+	<div class="text-xs text-gray-600">{logLines.length} строк</div>
 </div>

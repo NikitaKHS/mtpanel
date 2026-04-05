@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+﻿import { writable, derived } from 'svelte/store';
 import { api, type ProxyStatusResponse } from '$lib/api';
 import { notificationStore } from './notifications';
 
@@ -7,7 +7,7 @@ interface ProxyState {
 	loading: boolean;
 	error: string | null;
 	lastUpdated: Date | null;
-	actionLoading: string | null; // 'start' | 'stop' | 'restart' | null
+	actionLoading: string | null;
 }
 
 function createProxyStore() {
@@ -37,7 +37,7 @@ function createProxyStore() {
 			}));
 		} catch (e: unknown) {
 			if (e instanceof Error && e.name === 'AbortError') return;
-			const msg = e instanceof Error ? e.message : 'Failed to fetch status';
+			const msg = e instanceof Error ? e.message : 'Не удалось получить статус';
 			update((s) => ({ ...s, error: msg, loading: false }));
 		}
 	}
@@ -77,10 +77,10 @@ function createProxyStore() {
 			else if (action === 'stop') await api.proxy.stop();
 			else if (action === 'restart') await api.proxy.restart();
 
-			notificationStore.success(`Proxy ${action}ed successfully`);
+			notificationStore.success('Операция выполнена успешно');
 			await fetchStatus();
 		} catch (e: unknown) {
-			const msg = e instanceof Error ? e.message : `Failed to ${action} proxy`;
+			const msg = e instanceof Error ? e.message : 'Не удалось выполнить операцию с прокси';
 			notificationStore.error(msg);
 		} finally {
 			update((s) => ({ ...s, actionLoading: null }));
@@ -90,11 +90,11 @@ function createProxyStore() {
 	async function rotateSecret(): Promise<string | null> {
 		try {
 			const res = await api.proxy.rotateSecret();
-			notificationStore.success('Secret rotated');
+			notificationStore.success('Secret обновлён');
 			await fetchStatus();
 			return res.secret;
 		} catch (e: unknown) {
-			const msg = e instanceof Error ? e.message : 'Failed to rotate secret';
+			const msg = e instanceof Error ? e.message : 'Не удалось обновить secret';
 			notificationStore.error(msg);
 			return null;
 		}
@@ -113,7 +113,4 @@ function createProxyStore() {
 
 export const proxyStore = createProxyStore();
 
-export const proxyRunning = derived(
-	proxyStore,
-	($proxy) => $proxy.status?.status === 'running'
-);
+export const proxyRunning = derived(proxyStore, ($proxy) => $proxy.status?.status === 'running');

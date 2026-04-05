@@ -46,6 +46,8 @@ RestartSec=5
 LimitNOFILE=65536
 StandardOutput=journal
 StandardError=journal
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target

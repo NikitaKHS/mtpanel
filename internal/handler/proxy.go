@@ -161,7 +161,7 @@ func (h *ProxyHandler) CreateLink(w http.ResponseWriter, r *http.Request) {
 	link, err := h.svc.GenerateLink(r.Context(), req.Label)
 	if err != nil {
 		if errors.Is(err, service.ErrProxyNotInstalled) {
-			respondError(w, http.StatusConflict, "MTProxy is not installed yet. Install it first in Proxy section.")
+			respondError(w, http.StatusConflict, "MTProxy пока не установлен. Сначала установите его в разделе Прокси.")
 			return
 		}
 		respondError(w, http.StatusInternalServerError, err.Error())

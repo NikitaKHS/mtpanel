@@ -16,12 +16,6 @@ func ValidatePort(port int) error {
 	if port < 1 || port > 65535 {
 		return errors.New("port must be between 1 and 65535")
 	}
-	// Reject well-known privileged ports that require CAP_NET_BIND_SERVICE.
-	// The panel runs as a non-root user, so binding these will fail at runtime.
-	// Surface the error early here instead.
-	if port < 1024 {
-		return errors.New("port < 1024 requires root or CAP_NET_BIND_SERVICE; use 1024-65535")
-	}
 	return nil
 }
 
