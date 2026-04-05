@@ -6,8 +6,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=mtpanel
-Group=mtpanel
+User=root
+Group=root
 WorkingDirectory=/opt/mtpanel
 
 # Load environment overrides (file is optional — dash prefix silences missing-file errors)
@@ -42,7 +42,7 @@ PrivateDevices=true
 # Make /usr, /boot, /etc read-only; allow only explicit ReadWritePaths
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/mtpanel /etc/mtpanel
+ReadWritePaths=/var/lib/mtpanel /etc/mtpanel /opt/mtproxy /etc/systemd/system
 
 # Protect kernel interfaces
 ProtectKernelTunables=true

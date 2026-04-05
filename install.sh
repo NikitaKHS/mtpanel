@@ -609,8 +609,8 @@ PartOf=mtproxy.service
 
 [Service]
 Type=simple
-User=${PANEL_USER}
-Group=${PANEL_USER}
+User=root
+Group=root
 WorkingDirectory=${INSTALL_DIR}
 EnvironmentFile=-${CONFIG_DIR}/mtpanel.env
 ExecStart=${INSTALL_DIR}/${BINARY_NAME}
@@ -632,7 +632,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=${DATA_DIR} ${CONFIG_DIR}
+ReadWritePaths=${DATA_DIR} ${CONFIG_DIR} /opt/mtproxy /etc/systemd/system
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

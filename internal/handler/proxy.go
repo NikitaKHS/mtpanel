@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -95,6 +96,10 @@ func (h *ProxyHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	logLines, err := h.svc.GetLogs(r.Context(), lines)
 	if err != nil {
+		if errors.Is(err, service.ErrProxyNotInstalled) {
+			respondError(w, http.StatusConflict, err.Error())
+			return
+		}
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -155,6 +160,10 @@ func (h *ProxyHandler) CreateLink(w http.ResponseWriter, r *http.Request) {
 
 	link, err := h.svc.GenerateLink(r.Context(), req.Label)
 	if err != nil {
+		if errors.Is(err, service.ErrProxyNotInstalled) {
+			respondError(w, http.StatusConflict, "MTProxy is not installed yet. Install it first in Proxy section.")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,8 @@ const (
 	githubReleasesAPI  = "https://api.github.com/repos/TelegramMessenger/MTProxy/releases/latest"
 	downloadURLPattern = "https://github.com/TelegramMessenger/MTProxy/releases/latest/download/mtproto-proxy-linux-%s"
 )
+
+var ErrProxyNotInstalled = errors.New("mtproxy is not installed")
 
 var systemdUnitTmpl = template.Must(template.New("unit").Parse(`[Unit]
 Description=MTProto Proxy
@@ -59,8 +62,8 @@ type unitData struct {
 
 // ProxyService manages the MTProxy daemon lifecycle.
 type ProxyService struct {
-	cfg      *config.Config
-	systemd  *systemd.Manager
+	cfg       *config.Config
+	systemd   *systemd.Manager
 	proxyRepo repository.ProxyConfigRepository
 	linkRepo  repository.ProxyLinkRepository
 	audit     repository.AuditRepository
@@ -235,6 +238,9 @@ func (s *ProxyService) RotateSecret(ctx context.Context) (string, error) {
 func (s *ProxyService) GenerateLink(ctx context.Context, label string) (*domain.ProxyLink, error) {
 	cfg, err := s.proxyRepo.GetActive(ctx)
 	if err != nil {
+		if isMissingProxyConfig(err) {
+			return nil, ErrProxyNotInstalled
+		}
 		return nil, fmt.Errorf("proxy: no active config: %w", err)
 	}
 
@@ -285,7 +291,14 @@ func (s *ProxyService) GetLogs(ctx context.Context, lines int) ([]string, error)
 	if lines <= 0 {
 		lines = 100
 	}
-	return s.systemd.GetLogs(ctx, mtproxyUnitName, lines)
+	logs, err := s.systemd.GetLogs(ctx, mtproxyUnitName, lines)
+	if err != nil {
+		if isMissingUnitLogs(err) {
+			return []string{"MTProxy пока не установлен или сервис mtproto-proxy.service не создан."}, nil
+		}
+		return nil, err
+	}
+	return logs, nil
 }
 
 // SetPort updates active proxy configuration and applies it immediately.
@@ -445,4 +458,22 @@ func mtproxyVersion(binPath string) string {
 		return "unknown"
 	}
 	return strings.TrimSpace(string(out))
+}
+
+func isMissingProxyConfig(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "proxy config not found")
+}
+
+func isMissingUnitLogs(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "no such file") ||
+		strings.Contains(msg, "unit mtproto-proxy.service could not be found") ||
+		strings.Contains(msg, "no journal files were found")
 }
