@@ -21,7 +21,11 @@ info()    { printf "%s[INFO]%s  %s\n"    "${CYAN}"   "${RESET}" "$*"; }
 success() { printf "%s[OK]%s    %s\n"    "${GREEN}"  "${RESET}" "$*"; }
 warn()    { printf "%s[WARN]%s  %s\n"    "${YELLOW}" "${RESET}" "$*" >&2; }
 die()     { printf "%s[ERROR]%s %s\n"    "${RED}"    "${RESET}" "$*" >&2; exit 1; }
-step()    { printf "\n%s==> %s%s\n"      "${BOLD}"   "$*" "${RESET}"; }
+STEP_INDEX=0
+step()    {
+  STEP_INDEX=$((STEP_INDEX + 1))
+  printf "\n%s==> [%d] %s%s\n" "${BOLD}" "${STEP_INDEX}" "$*" "${RESET}"
+}
 
 # ---------------------------------------------------------------------------
 # Defaults (overridable via flags)
@@ -39,6 +43,7 @@ CONFIG_FILE="${CONFIG_DIR}/config.json"
 SERVICE_NAME="mtpanel"
 BINARY_NAME="mtpanel"
 DOWNLOADED_WEB_DIST=""
+PANEL_ALLOW_CIDR=""
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -48,6 +53,7 @@ parse_args() {
     case "$1" in
       --port)        PANEL_PORT="${2:?'--port requires a value'}"; shift 2 ;;
       --mtproxy-port|--proxy-port) PROXY_PORT="${2:?'--proxy-port requires a value'}"; shift 2 ;;
+      --panel-allow) PANEL_ALLOW_CIDR="${2:?'--panel-allow requires CIDR, e.g. 1.2.3.4/32'}"; shift 2 ;;
       --repo)        GITHUB_REPO="${2:?'--repo requires a value'}"; shift 2 ;;
       --help|-h)
         cat <<EOF
@@ -56,6 +62,7 @@ MTPanel Installer
 Options:
   --port <port>          Panel listen port (default: 8080)
   --proxy-port <port>    TeleMT listen port (default: 443)
+  --panel-allow <cidr>   Allow panel access only from CIDR (default: SSH client IP/32)
   --repo <owner/repo>    GitHub repo for releases (default: NikitaKHS/mtpanel)
   --help                 Show this help
 EOF
@@ -677,35 +684,62 @@ start_panel_service() {
 firewall_hints() {
   step "Firewall configuration"
 
-  local fw_detected=false
+  # Default panel allowlist source: current SSH client.
+  if [[ -z "${PANEL_ALLOW_CIDR}" && -n "${SSH_CONNECTION:-}" ]]; then
+    local ssh_ip
+    ssh_ip=$(echo "${SSH_CONNECTION}" | awk '{print $1}')
+    if [[ -n "${ssh_ip}" ]]; then
+      PANEL_ALLOW_CIDR="${ssh_ip}/32"
+      info "Panel access limited to SSH source: ${PANEL_ALLOW_CIDR}"
+    fi
+  fi
+
+  if [[ -z "${PANEL_ALLOW_CIDR}" ]]; then
+    PANEL_ALLOW_CIDR="0.0.0.0/0"
+    warn "Could not detect SSH source IP. Panel access will be open to all (${PANEL_ALLOW_CIDR})."
+  fi
 
   if command -v ufw &>/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
-    fw_detected=true
-    info "UFW detected. Run these commands to open ports:"
-    printf "    ${CYAN}ufw allow %s/tcp   # Panel UI${RESET}\n" "${PANEL_PORT}"
-    printf "    ${CYAN}ufw allow %s/tcp   # TeleMT${RESET}\n"  "${PROXY_PORT}"
-    printf "    ${CYAN}ufw reload${RESET}\n"
+    info "Applying UFW rules automatically"
+    ufw allow "${PROXY_PORT}/tcp" >/dev/null
+    ufw delete allow "${PANEL_PORT}/tcp" >/dev/null 2>&1 || true
+    ufw allow from "${PANEL_ALLOW_CIDR}" to any port "${PANEL_PORT}" proto tcp >/dev/null
+    success "UFW rules applied"
+    return
   fi
 
   if command -v firewall-cmd &>/dev/null && firewall-cmd --state 2>/dev/null | grep -q "running"; then
-    fw_detected=true
-    info "firewalld detected. Run these commands:"
-    printf "    ${CYAN}firewall-cmd --permanent --add-port=%s/tcp${RESET}\n" "${PANEL_PORT}"
-    printf "    ${CYAN}firewall-cmd --permanent --add-port=%s/tcp${RESET}\n" "${PROXY_PORT}"
-    printf "    ${CYAN}firewall-cmd --reload${RESET}\n"
+    info "Applying firewalld rules automatically"
+    firewall-cmd --permanent --add-port="${PROXY_PORT}/tcp" >/dev/null
+    firewall-cmd --permanent --add-rich-rule="rule family='ipv4' source address='${PANEL_ALLOW_CIDR}' port protocol='tcp' port='${PANEL_PORT}' accept" >/dev/null
+    if [[ "${PANEL_ALLOW_CIDR}" != "0.0.0.0/0" ]]; then
+      firewall-cmd --permanent --add-rich-rule="rule family='ipv4' port protocol='tcp' port='${PANEL_PORT}' drop" >/dev/null
+    fi
+    firewall-cmd --reload >/dev/null
+    success "firewalld rules applied"
+    return
   fi
 
-  if ! ${fw_detected}; then
-    # Check raw iptables rules
-    if command -v iptables &>/dev/null; then
-      info "iptables detected (no frontend). Suggested rules:"
-      printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${PANEL_PORT}"
-      printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${PROXY_PORT}"
-      printf "    ${CYAN}iptables-save > /etc/iptables/rules.v4${RESET}\n"
-    else
-      info "No firewall detected - ports should be accessible already"
+  if command -v iptables &>/dev/null; then
+    info "Applying iptables rules automatically"
+    iptables -C INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || \
+      iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    iptables -C INPUT -p tcp --dport "${PROXY_PORT}" -j ACCEPT 2>/dev/null || \
+      iptables -A INPUT -p tcp --dport "${PROXY_PORT}" -j ACCEPT
+    iptables -C INPUT -p tcp -s "${PANEL_ALLOW_CIDR}" --dport "${PANEL_PORT}" -j ACCEPT 2>/dev/null || \
+      iptables -A INPUT -p tcp -s "${PANEL_ALLOW_CIDR}" --dport "${PANEL_PORT}" -j ACCEPT
+    if [[ "${PANEL_ALLOW_CIDR}" != "0.0.0.0/0" ]]; then
+      iptables -C INPUT -p tcp --dport "${PANEL_PORT}" -j DROP 2>/dev/null || \
+        iptables -A INPUT -p tcp --dport "${PANEL_PORT}" -j DROP
     fi
+    if command -v iptables-save &>/dev/null && [[ -d /etc/iptables ]]; then
+      iptables-save > /etc/iptables/rules.v4 || true
+    fi
+    success "iptables rules applied"
+    return
   fi
+
+  warn "No supported firewall tool detected; skipping auto-firewall setup"
 }
 
 # ---------------------------------------------------------------------------

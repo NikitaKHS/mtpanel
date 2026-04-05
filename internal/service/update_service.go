@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +21,8 @@ const (
 	panelVersion      = "1.0.0"
 	githubReleasesAPI = "https://api.github.com/repos/telemt/telemt/releases/latest"
 )
+
+var versionTokenRe = regexp.MustCompile(`v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.\-]+)?`)
 
 // githubRelease is a partial decode of the GitHub Releases API response.
 type githubRelease struct {
@@ -77,7 +81,7 @@ func (u *UpdateService) CheckUpdate(ctx context.Context) (*domain.UpdateInfo, er
 	info := &domain.UpdateInfo{
 		CurrentVersion:  current,
 		LatestVersion:   release.TagName,
-		UpdateAvailable: release.TagName != "" && release.TagName != current,
+		UpdateAvailable: isUpdateAvailable(current, release.TagName),
 		ReleaseURL:      release.HTMLURL,
 		ReleaseNotes:    release.Body,
 		PublishedAt:     release.PublishedAt.Format(time.RFC3339),
@@ -210,4 +214,29 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return out.Sync()
+}
+
+func normalizeVersion(v string) string {
+	v = strings.TrimSpace(strings.ToLower(v))
+	if v == "" || v == "unknown" {
+		return ""
+	}
+	token := versionTokenRe.FindString(v)
+	if token == "" {
+		return strings.TrimPrefix(v, "v")
+	}
+	return strings.TrimPrefix(token, "v")
+}
+
+func isUpdateAvailable(current, latest string) bool {
+	nLatest := normalizeVersion(latest)
+	if nLatest == "" {
+		return false
+	}
+	nCurrent := normalizeVersion(current)
+	if nCurrent == "" {
+		// Unknown current version: keep conservative behavior and show update available.
+		return true
+	}
+	return nCurrent != nLatest
 }
