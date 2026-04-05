@@ -599,6 +599,14 @@ install_panel_service() {
   step "Installing MTPanel systemd service"
 
   local unit_file="/etc/systemd/system/mtpanel.service"
+  local dropin_dir="/etc/systemd/system/mtpanel.service.d"
+
+  # Old local overrides may contain incompatible hardening flags and
+  # break SQLite/WAL startup. Remove them to keep installs reproducible.
+  if [[ -d "${dropin_dir}" ]]; then
+    info "Removing legacy mtpanel drop-ins from ${dropin_dir}"
+    rm -rf "${dropin_dir}"
+  fi
 
   cat > "${unit_file}" <<EOF
 [Unit]

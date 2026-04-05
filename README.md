@@ -18,40 +18,59 @@ curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh |
 
 1. Проверяет ОС/архитектуру и наличие `systemd`.
 2. Создает системные директории и пользователя `mtpanel`.
-3. Скачивает бинарник панели (или собирает из исходников при отсутствии релиза).
-4. Устанавливает фронтенд-ассеты.
+3. Скачивает бинарник панели (или собирает из исходников, если релиз недоступен).
+4. Ставит фронтенд-ассеты.
 5. Пишет конфиг панели в `/etc/mtpanel/config.json`.
-6. Ставит и запускает `mtpanel.service`.
+6. Удаляет старые `mtpanel.service.d/override.conf` (если есть).
+7. Ставит и запускает `mtpanel.service`.
 
 ## Первый запуск
 
 1. Откройте `http://<SERVER_IP>:8080`.
 2. При первом входе откройте `/setup` и задайте пароль администратора.
-3. После этого войдите через `/login`.
-4. В разделе `Прокси` нажмите установку TeleMT.
+3. После этого вход через `/login`.
+4. В разделе `Прокси` установите TeleMT.
 
-## Проверка после установки
+## Быстрая проверка
 
 ```bash
-sudo systemctl status mtpanel --no-pager
-sudo journalctl -u mtpanel -n 200 --no-pager
-
-sudo systemctl status telemt.service --no-pager
-sudo journalctl -u telemt.service -n 200 --no-pager
+sudo systemctl status mtpanel --no-pager -l
+sudo journalctl -u mtpanel -n 120 --no-pager -l
+curl -I http://127.0.0.1:8080/
 ```
 
-## Частые проблемы
+## Полное удаление (для чистого теста)
 
-### `address already in use` на `:8080`
+Внимание: команда удалит панель, базу и настройки.
 
-Порт занят другим процессом. Освободите порт или смените `--port`.
+```bash
+sudo systemctl stop mtpanel 2>/dev/null || true
+sudo systemctl disable mtpanel 2>/dev/null || true
+sudo pkill -f '/opt/mtpanel/mtpanel' || true
 
-### `HTTP 404` на скачивании старого MTProxy
+sudo systemctl stop telemt 2>/dev/null || true
+sudo systemctl disable telemt 2>/dev/null || true
 
-В актуальной версии используется только **TeleMT**, старый источник MTProxy больше не нужен.
+sudo rm -f /etc/systemd/system/mtpanel.service
+sudo rm -rf /etc/systemd/system/mtpanel.service.d
+sudo rm -f /etc/systemd/system/telemt.service
+sudo systemctl daemon-reload
+
+sudo rm -rf /opt/mtpanel /opt/telemt
+sudo rm -rf /etc/mtpanel /etc/telemt
+sudo rm -rf /var/lib/mtpanel
+
+sudo userdel mtpanel 2>/dev/null || true
+```
+
+После этого можно ставить заново:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash
+```
 
 ## Примечания
 
 - Поддерживается Linux + systemd.
-- Режим только `telemt.service` (telemt-only).
+- Используется только `telemt.service` (режим `telemt-only`).
 - Для production рекомендуется reverse proxy + TLS.
