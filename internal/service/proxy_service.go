@@ -28,6 +28,7 @@ const (
 	mtproxyUnitPath    = "/etc/systemd/system/mtproto-proxy.service"
 	githubReleasesAPI  = "https://api.github.com/repos/TelegramMessenger/MTProxy/releases/latest"
 	downloadURLPattern = "https://github.com/TelegramMessenger/MTProxy/releases/latest/download/mtproto-proxy-linux-%s"
+	mtproxySourceRepo  = "https://github.com/TelegramMessenger/MTProxy.git"
 )
 
 var ErrProxyNotInstalled = errors.New("mtproxy is not installed")
@@ -107,7 +108,13 @@ func (s *ProxyService) Install(ctx context.Context) error {
 	}
 
 	if err := downloadBinary(ctx, binURL, s.cfg.MTProxyBinPath); err != nil {
-		return fmt.Errorf("proxy: download binary: %w", err)
+		if strings.Contains(err.Error(), "HTTP 404") {
+			if buildErr := buildBinaryFromSource(ctx, s.cfg.MTProxyBinPath); buildErr != nil {
+				return fmt.Errorf("proxy: download binary failed (%v), source build failed: %w", err, buildErr)
+			}
+		} else {
+			return fmt.Errorf("proxy: download binary: %w", err)
+		}
 	}
 
 	secret := s.cfg.MTProxySecret
@@ -460,6 +467,61 @@ func mtproxyVersion(binPath string) string {
 		return "unknown"
 	}
 	return strings.TrimSpace(string(out))
+}
+
+func buildBinaryFromSource(ctx context.Context, dest string) error {
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git is required for MTProxy source build: %w", err)
+	}
+	if _, err := exec.LookPath("make"); err != nil {
+		return fmt.Errorf("make is required for MTProxy source build: %w", err)
+	}
+
+	tmpDir, err := os.MkdirTemp("", "mtproxy-src-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	repoDir := filepath.Join(tmpDir, "MTProxy")
+
+	cloneCmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", mtproxySourceRepo, repoDir)
+	if out, err := cloneCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git clone MTProxy: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+
+	makeCmd := exec.CommandContext(ctx, "make", "-j2")
+	makeCmd.Dir = repoDir
+	if out, err := makeCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("make MTProxy: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+
+	srcBin := filepath.Join(repoDir, "objs", "bin", "mtproto-proxy")
+	if _, err := os.Stat(srcBin); err != nil {
+		return fmt.Errorf("compiled binary not found at %s: %w", srcBin, err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
+	}
+
+	in, err := os.Open(srcBin)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func isMissingProxyConfig(err error) bool {

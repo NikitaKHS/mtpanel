@@ -1,4 +1,5 @@
 ﻿<script lang="ts">
+	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { proxyStore } from '$lib/stores/proxy';
 	import { notificationStore } from '$lib/stores/notifications';
@@ -27,6 +28,17 @@
 	let port = $state(443);
 	let installMessage = $state('');
 	let errorMsg = $state('');
+
+	onMount(async () => {
+		try {
+			const settings = await api.settings.get();
+			if (typeof settings?.proxy_port === 'number' && settings.proxy_port > 0) {
+				port = settings.proxy_port;
+			}
+		} catch {
+			// Keep default value if settings are unavailable.
+		}
+	});
 
 	async function checkCompatibility() {
 		compatLoading = true;
@@ -155,10 +167,7 @@
 				/>
 			</div>
 
-			<button
-				onclick={install}
-				class="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium transition-colors"
-			>
+			<button onclick={install} class="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium transition-colors">
 				Установить MTProxy
 			</button>
 		</div>
@@ -187,13 +196,7 @@
 		<div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
 			<p class="text-sm font-medium text-red-400 mb-1">Ошибка</p>
 			<p class="text-xs text-red-300">{errorMsg}</p>
-			<button
-				onclick={() => {
-					step = 'check';
-					errorMsg = '';
-				}}
-				class="mt-3 text-xs text-red-400 hover:text-red-300 underline"
-			>Повторить</button>
+			<button onclick={() => { step = 'check'; errorMsg = ''; }} class="mt-3 text-xs text-red-400 hover:text-red-300 underline">Повторить</button>
 		</div>
 	{/if}
 </div>
