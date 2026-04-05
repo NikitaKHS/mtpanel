@@ -71,7 +71,7 @@
 			const res = await api.proxy.install(port);
 			installMessage = res.message;
 			step = 'done';
-			notificationStore.success('MTProxy успешно установлен');
+			notificationStore.success('TeleMT успешно установлен');
 			proxyStore.refresh();
 			onInstalled?.();
 		} catch (e: unknown) {
@@ -87,8 +87,8 @@
 </script>
 
 <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-lg">
-	<h2 class="text-base font-semibold text-gray-100 mb-1">Установка MTProxy</h2>
-	<p class="text-sm text-gray-400 mb-6">Пройдите шаги, чтобы установить MTProxy на этот сервер.</p>
+	<h2 class="text-base font-semibold text-gray-100 mb-1">Установка TeleMT</h2>
+	<p class="text-sm text-gray-400 mb-6">Пройдите шаги, чтобы установить TeleMT на этот сервер.</p>
 
 	<div class="flex items-center gap-2 mb-8 text-xs">
 		{#each ['Проверка', 'Настройка', 'Установка', 'Готово'] as label, i}
@@ -118,7 +118,7 @@
 
 	{#if step === 'check'}
 		<div class="text-center py-4">
-			<p class="text-sm text-gray-400 mb-6">Проверьте совместимость системы перед установкой MTProxy.</p>
+			<p class="text-sm text-gray-400 mb-6">Проверьте совместимость системы перед установкой TeleMT.</p>
 			<button
 				onclick={checkCompatibility}
 				disabled={compatLoading}
@@ -168,7 +168,7 @@
 			</div>
 
 			<button onclick={install} class="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium transition-colors">
-				Установить MTProxy
+				Установить TeleMT
 			</button>
 		</div>
 
@@ -178,7 +178,7 @@
 				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 				<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
 			</svg>
-			<p class="text-sm text-gray-400">Устанавливаем MTProxy, пожалуйста подождите...</p>
+			<p class="text-sm text-gray-400">Устанавливаем TeleMT, пожалуйста подождите...</p>
 		</div>
 
 	{:else if step === 'done'}

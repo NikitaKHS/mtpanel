@@ -30,6 +30,6 @@ func (h *UpdateHandler) Apply(w http.ResponseWriter, r *http.Request) {
 	}
 	respondOK(w, map[string]any{
 		"success": true,
-		"message": "update applied",
+		"message": "Обновление успешно применено",
 	})
 }

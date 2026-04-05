@@ -32,7 +32,7 @@ function createSystemStore() {
 			const info = await api.system.info();
 			set({ info, loading: false, error: null, cachedAt: new Date() });
 		} catch (e: unknown) {
-			const msg = e instanceof Error ? e.message : 'Failed to fetch system info';
+			const msg = e instanceof Error ? e.message : 'Не удалось загрузить информацию о системе';
 			update((s) => ({ ...s, loading: false, error: msg }));
 		}
 	}

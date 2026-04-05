@@ -39,7 +39,7 @@ func (h *ProxyHandler) Install(w http.ResponseWriter, r *http.Request) {
 	}
 	respondOK(w, map[string]any{
 		"success": true,
-		"message": "MTProxy installed",
+		"message": "TeleMT успешно установлен",
 	})
 }
 
@@ -86,7 +86,6 @@ func (h *ProxyHandler) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetLogs handles GET /api/proxy/logs.
-// Optional query param: ?lines=N (default 100, max 1000).
 func (h *ProxyHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
 	lines := 100
 	if v := r.URL.Query().Get("lines"); v != "" {
@@ -161,7 +160,7 @@ func (h *ProxyHandler) CreateLink(w http.ResponseWriter, r *http.Request) {
 	link, err := h.svc.GenerateLink(r.Context(), req.Label)
 	if err != nil {
 		if errors.Is(err, service.ErrProxyNotInstalled) {
-			respondError(w, http.StatusConflict, "MTProxy пока не установлен. Сначала установите его в разделе Прокси.")
+			respondError(w, http.StatusConflict, "TeleMT пока не установлен. Сначала установите его в разделе «Прокси».")
 			return
 		}
 		respondError(w, http.StatusInternalServerError, err.Error())

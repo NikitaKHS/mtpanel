@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # =============================================================================
 # MTPanel Install Script
 # Usage:
@@ -27,12 +27,13 @@ step()    { printf "\n%s==> %s%s\n"      "${BOLD}"   "$*" "${RESET}"; }
 # Defaults (overridable via flags)
 # ---------------------------------------------------------------------------
 PANEL_PORT=8080
-MTPROXY_PORT=443
+PROXY_PORT=443
 GITHUB_REPO="NikitaKHS/mtpanel"
 INSTALL_DIR="/opt/mtpanel"
-MTPROXY_DIR="/opt/mtproxy"
+PROXY_DIR="/opt/telemt"
 DATA_DIR="/var/lib/mtpanel"
 CONFIG_DIR="/etc/mtpanel"
+TELEMT_CONFIG_DIR="/etc/telemt"
 PANEL_USER="mtpanel"
 CONFIG_FILE="${CONFIG_DIR}/config.json"
 SERVICE_NAME="mtpanel"
@@ -46,7 +47,7 @@ parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --port)        PANEL_PORT="${2:?'--port requires a value'}"; shift 2 ;;
-      --mtproxy-port) MTPROXY_PORT="${2:?'--mtproxy-port requires a value'}"; shift 2 ;;
+      --mtproxy-port|--proxy-port) PROXY_PORT="${2:?'--proxy-port requires a value'}"; shift 2 ;;
       --repo)        GITHUB_REPO="${2:?'--repo requires a value'}"; shift 2 ;;
       --help|-h)
         cat <<EOF
@@ -54,7 +55,7 @@ MTPanel Installer
 
 Options:
   --port <port>          Panel listen port (default: 8080)
-  --mtproxy-port <port>  MTProxy listen port (default: 443)
+  --proxy-port <port>    TeleMT listen port (default: 443)
   --repo <owner/repo>    GitHub repo for releases (default: NikitaKHS/mtpanel)
   --help                 Show this help
 EOF
@@ -525,8 +526,8 @@ write_config() {
   "listen_addr": ":${PANEL_PORT}",
   "data_dir": "${DATA_DIR}",
   "db_path": "${DATA_DIR}/mtpanel.db",
-  "mtproxy_bin_path": "/opt/mtproxy/mtproto-proxy",
-  "mtproxy_port": ${MTPROXY_PORT},
+  "mtproxy_bin_path": "/opt/telemt/telemt",
+  "mtproxy_port": ${PROXY_PORT},
   "mtproxy_secret": "${MTPROXY_SECRET}",
   "jwt_secret": "${JWT_SECRET}",
   "jwt_expire_hours": 24,
@@ -601,12 +602,12 @@ install_panel_service() {
 
   cat > "${unit_file}" <<EOF
 [Unit]
-Description=MTPanel - MTProxy Management Panel
+Description=MTPanel - TeleMT Management Panel
 Documentation=https://github.com/${GITHUB_REPO}
 After=network-online.target
 Wants=network-online.target
-# Restart if MTProxy service is cycled
-PartOf=mtproxy.service
+# Restart if TeleMT service is cycled
+PartOf=telemt.service
 
 [Service]
 Type=simple
@@ -633,7 +634,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=${DATA_DIR} ${CONFIG_DIR} ${MTPROXY_DIR} /etc/systemd/system
+ReadWritePaths=${DATA_DIR} ${CONFIG_DIR} ${TELEMT_CONFIG_DIR} ${PROXY_DIR} /etc/systemd/system
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
@@ -645,8 +646,8 @@ RestrictNamespaces=true
 SystemCallFilter=@system-service
 SystemCallErrorNumber=EPERM
 
-# Allow systemd management for MTProxy
-# The panel calls systemctl to manage mtproxy.service
+# Allow systemd management for TeleMT
+# The panel calls systemctl to manage telemt.service
 AmbientCapabilities=
 CapabilityBoundingSet=
 # Needed to bind ports < 1024 only if panel port is privileged
@@ -712,7 +713,7 @@ firewall_hints() {
     fw_detected=true
     info "UFW detected. Run these commands to open ports:"
     printf "    ${CYAN}ufw allow %s/tcp   # Panel UI${RESET}\n" "${PANEL_PORT}"
-    printf "    ${CYAN}ufw allow %s/tcp   # MTProxy${RESET}\n"  "${MTPROXY_PORT}"
+    printf "    ${CYAN}ufw allow %s/tcp   # TeleMT${RESET}\n"  "${PROXY_PORT}"
     printf "    ${CYAN}ufw reload${RESET}\n"
   fi
 
@@ -720,7 +721,7 @@ firewall_hints() {
     fw_detected=true
     info "firewalld detected. Run these commands:"
     printf "    ${CYAN}firewall-cmd --permanent --add-port=%s/tcp${RESET}\n" "${PANEL_PORT}"
-    printf "    ${CYAN}firewall-cmd --permanent --add-port=%s/tcp${RESET}\n" "${MTPROXY_PORT}"
+    printf "    ${CYAN}firewall-cmd --permanent --add-port=%s/tcp${RESET}\n" "${PROXY_PORT}"
     printf "    ${CYAN}firewall-cmd --reload${RESET}\n"
   fi
 
@@ -729,7 +730,7 @@ firewall_hints() {
     if command -v iptables &>/dev/null; then
       info "iptables detected (no frontend). Suggested rules:"
       printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${PANEL_PORT}"
-      printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${MTPROXY_PORT}"
+      printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${PROXY_PORT}"
       printf "    ${CYAN}iptables-save > /etc/iptables/rules.v4${RESET}\n"
     else
       info "No firewall detected - ports should be accessible already"
@@ -789,7 +790,7 @@ print_summary() {
 main() {
   echo ""
   printf "%s%s%s\n" "${BOLD}${CYAN}" \
-    "  MTPanel Installer - Self-Hosted MTProxy Management" "${RESET}"
+    "  MTPanel Installer - Self-Hosted TeleMT Management" "${RESET}"
   printf "%s%s%s\n" "${CYAN}" \
     "  https://github.com/${GITHUB_REPO}" "${RESET}"
   echo ""
@@ -805,7 +806,8 @@ main() {
   step "Preparing directories and users"
   create_user "${PANEL_USER}"
   ensure_dir "${INSTALL_DIR}"          root   755
-  ensure_dir "${MTPROXY_DIR}"          root   755
+  ensure_dir "${PROXY_DIR}"            root   755
+  ensure_dir "${TELEMT_CONFIG_DIR}"    root   755
   ensure_dir "${DATA_DIR}"             "${PANEL_USER}" 750
   ensure_dir "${CONFIG_DIR}"           root   755
 
@@ -836,3 +838,5 @@ main() {
 }
 
 main "$@"
+
+

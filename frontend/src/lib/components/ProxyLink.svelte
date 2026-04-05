@@ -17,10 +17,10 @@
 		try {
 			await navigator.clipboard.writeText(url);
 			copied = true;
-			notificationStore.success('Link copied to clipboard');
+			notificationStore.success('Ссылка скопирована');
 			setTimeout(() => (copied = false), 2000);
 		} catch {
-			notificationStore.error('Failed to copy to clipboard');
+			notificationStore.error('Не удалось скопировать ссылку');
 		}
 	}
 
@@ -41,7 +41,7 @@
 	<button
 		onclick={copyToClipboard}
 		class="shrink-0 p-1.5 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
-		title="Copy link"
+		title="Скопировать ссылку"
 	>
 		{#if copied}
 			<svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -59,7 +59,7 @@
 		<button
 			onclick={() => (showQrModal = true)}
 			class="shrink-0 p-1.5 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
-			title="Show QR code"
+			title="Показать QR-код"
 		>
 			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -82,19 +82,19 @@
 			role="dialog"
 			tabindex="0"
 			aria-modal="true"
-			aria-label="QR code"
+			aria-label="QR-код"
 		>
-			<h3 class="text-sm font-semibold text-gray-200">Scan to connect</h3>
+			<h3 class="text-sm font-semibold text-gray-200">Сканируйте для подключения</h3>
 			<img
 				src={buildQrUrl(url)}
-				alt="QR code for proxy link"
+				alt="QR-код для ссылки прокси"
 				class="w-48 h-48 rounded bg-white p-2"
 			/>
 			<p class="text-xs text-gray-500 text-center break-all">{url}</p>
 			<button
 				onclick={() => (showQrModal = false)}
 				class="text-xs text-gray-400 hover:text-white transition-colors"
-			>Close</button>
+			>Закрыть</button>
 		</div>
 	</div>
 {/if}

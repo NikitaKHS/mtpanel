@@ -30,7 +30,7 @@
 <form onsubmit={submit} class="w-full max-w-md rounded-2xl border border-cyan-500/20 bg-slate-900/85 backdrop-blur-xl p-7 shadow-2xl shadow-cyan-950/40">
 	<p class="text-xs uppercase tracking-[0.16em] text-cyan-300/80 mb-2">MTPanel</p>
 	<h1 class="text-2xl font-semibold mb-2 text-slate-50">Вход в панель</h1>
-	<p class="text-sm text-slate-300 mb-6">Управление MTProxy на вашем сервере</p>
+	<p class="text-sm text-slate-300 mb-6">Управление TeleMT на вашем сервере</p>
 
 	<label class="text-sm text-slate-200 block mb-2" for="password">Пароль</label>
 	<input
@@ -49,5 +49,5 @@
 		{loading ? 'Выполняем вход...' : 'Войти'}
 	</button>
 
-	<a class="block text-center text-xs text-slate-400 mt-4 hover:text-cyan-300" href="/setup">Первый запуск / Setup</a>
+	<a class="block text-center text-xs text-slate-400 mt-4 hover:text-cyan-300" href="/setup">Первый запуск / Настройка</a>
 </form>

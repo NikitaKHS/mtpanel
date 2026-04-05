@@ -15,7 +15,10 @@ import (
 	"github.com/mtpanel/mtpanel/internal/repository"
 )
 
-const panelVersion = "1.0.0"
+const (
+	panelVersion      = "1.0.0"
+	githubReleasesAPI = "https://api.github.com/repos/telemt/telemt/releases/latest"
+)
 
 // githubRelease is a partial decode of the GitHub Releases API response.
 type githubRelease struct {
@@ -59,12 +62,15 @@ func (u *UpdateService) CheckUpdate(ctx context.Context) (*domain.UpdateInfo, er
 		return nil, fmt.Errorf("update: fetch release: %w", err)
 	}
 
-	current, _ := u.settings.Get(ctx, "mtproxy_version")
+	current, _ := u.settings.Get(ctx, "telemt_version")
+	if current == "" {
+		current, _ = u.settings.Get(ctx, "mtproxy_version")
+	}
 
 	info := &domain.UpdateInfo{
 		CurrentVersion:  current,
 		LatestVersion:   release.TagName,
-		UpdateAvailable: release.TagName != current && release.TagName != "",
+		UpdateAvailable: release.TagName != "" && release.TagName != current,
 		ReleaseURL:      release.HTMLURL,
 		ReleaseNotes:    release.Body,
 		PublishedAt:     release.PublishedAt.Format(time.RFC3339),
@@ -72,91 +78,71 @@ func (u *UpdateService) CheckUpdate(ctx context.Context) (*domain.UpdateInfo, er
 	return info, nil
 }
 
-// Update performs a safe binary replacement:
-//  1. Stop the running service.
-//  2. Back up the current binary.
-//  3. Download + replace.
-//  4. Start the service.
-//  5. Roll back on error.
+// Update performs a safe binary replacement.
 func (u *UpdateService) Update(ctx context.Context) error {
 	release, err := fetchLatestRelease(ctx)
 	if err != nil {
 		return fmt.Errorf("update: fetch release: %w", err)
 	}
 
-	arch := detectArch()
-	if arch == "" {
-		return fmt.Errorf("update: unsupported architecture")
+	assetName, err := telemtAssetName()
+	if err != nil {
+		return fmt.Errorf("update: resolve asset name: %w", err)
 	}
 
 	downloadURL := ""
-	suffix := "mtproto-proxy-linux-" + arch
 	for _, a := range release.Assets {
-		if a.Name == suffix {
+		if a.Name == assetName {
 			downloadURL = a.BrowserDownloadURL
 			break
 		}
 	}
 	if downloadURL == "" {
-		// Fall back to pattern URL.
-		downloadURL = fmt.Sprintf(downloadURLPattern, arch)
+		downloadURL, err = telemtLatestAssetURL()
+		if err != nil {
+			return fmt.Errorf("update: fallback url: %w", err)
+		}
 	}
 
 	binPath := u.cfg.MTProxyBinPath
 	backupPath := binPath + ".bak"
 
-	// Stop service before replacing binary.
-	stopErr := u.systemdM.StopUnit(ctx, mtproxyUnitName)
+	stopErr := u.systemdM.StopUnit(ctx, telemtUnitName)
+	_ = copyFile(binPath, backupPath)
 
-	// Back up current binary (best effort).
-	if err := copyFile(binPath, backupPath); err != nil {
-		// Not fatal if file doesn't exist yet.
-		_ = err
-	}
-
-	// Download new binary.
-	if err := downloadBinary(ctx, downloadURL, binPath); err != nil {
-		// Restore backup.
+	if err := downloadAndExtractTeleMT(ctx, downloadURL, binPath); err != nil {
 		_ = copyFile(backupPath, binPath)
-		// Restart old version.
 		if stopErr == nil {
-			_ = u.systemdM.StartUnit(ctx, mtproxyUnitName)
+			_ = u.systemdM.StartUnit(ctx, telemtUnitName)
 		}
-		return fmt.Errorf("update: download: %w", err)
+		return fmt.Errorf("update: download and install: %w", err)
 	}
 
-	// Verify new binary executes.
 	if err := verifyBinary(binPath); err != nil {
-		// Restore backup and restart.
 		_ = copyFile(backupPath, binPath)
 		if stopErr == nil {
-			_ = u.systemdM.StartUnit(ctx, mtproxyUnitName)
+			_ = u.systemdM.StartUnit(ctx, telemtUnitName)
 		}
 		return fmt.Errorf("update: binary verification failed: %w", err)
 	}
 
-	// Persist new version.
+	_ = u.settings.Set(ctx, "telemt_version", release.TagName)
 	_ = u.settings.Set(ctx, "mtproxy_version", release.TagName)
 
-	// Restart service.
-	if err := u.systemdM.StartUnit(ctx, mtproxyUnitName); err != nil {
+	if err := u.systemdM.StartUnit(ctx, telemtUnitName); err != nil {
 		return fmt.Errorf("update: restart after update: %w", err)
 	}
 
-	// Record audit event.
 	_ = u.audit.Record(ctx, &domain.AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: domain.AuditEventUpdateApplied,
 		ActorID:   "system",
-		Detail:    fmt.Sprintf("updated to %s", release.TagName),
+		Detail:    fmt.Sprintf("telemt updated to %s", release.TagName),
 	})
 
-	// Clean up backup.
-	os.Remove(backupPath)
+	_ = os.Remove(backupPath)
 	return nil
 }
-
-// ---------- helpers ----------
 
 func fetchLatestRelease(ctx context.Context) (*githubRelease, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, githubReleasesAPI, nil)
@@ -184,7 +170,6 @@ func fetchLatestRelease(ctx context.Context) (*githubRelease, error) {
 	return &rel, nil
 }
 
-// verifyBinary checks the binary is executable and responds to --version or --help.
 func verifyBinary(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -196,7 +181,6 @@ func verifyBinary(path string) error {
 	return nil
 }
 
-// copyFile copies src → dst, preserving permissions.
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {

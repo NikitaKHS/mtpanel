@@ -15,7 +15,7 @@
 			status = await api.proxy.status();
 			if (status?.port) port = status.port;
 		} catch (e) {
-			notificationStore.error(e instanceof Error ? e.message : 'Failed to load proxy status');
+			notificationStore.error(e instanceof Error ? e.message : 'Не удалось загрузить статус прокси');
 		} finally {
 			loading = false;
 		}
@@ -26,37 +26,37 @@
 			if (action === 'start') await api.proxy.start();
 			if (action === 'stop') await api.proxy.stop();
 			if (action === 'restart') await api.proxy.restart();
-			notificationStore.success(`Proxy ${action} successful`);
+			notificationStore.success('Команда выполнена');
 			await refresh();
 		} catch (e) {
-			notificationStore.error(e instanceof Error ? e.message : `Failed to ${action}`);
+			notificationStore.error(e instanceof Error ? e.message : 'Не удалось выполнить команду');
 		}
 	}
 
 	async function rotateSecret() {
 		try {
 			await api.proxy.rotateSecret();
-			notificationStore.success('Secret rotated');
+			notificationStore.success('Секрет обновлен');
 			await refresh();
 		} catch (e) {
-			notificationStore.error(e instanceof Error ? e.message : 'Failed to rotate secret');
+			notificationStore.error(e instanceof Error ? e.message : 'Не удалось обновить секрет');
 		}
 	}
 
 	async function updatePort() {
 		try {
 			await api.proxy.setPort(port);
-			notificationStore.success('Port updated');
+			notificationStore.success('Порт обновлен');
 			await refresh();
 		} catch (e) {
-			notificationStore.error(e instanceof Error ? e.message : 'Failed to update port');
+			notificationStore.error(e instanceof Error ? e.message : 'Не удалось обновить порт');
 		}
 	}
 
 	onMount(refresh);
 </script>
 
-<h1 class="text-2xl font-semibold mb-6">Управление MTProxy</h1>
+<h1 class="text-2xl font-semibold mb-6">Управление TeleMT</h1>
 
 {#if loading}
 	<p class="text-slate-400">Загрузка статуса...</p>
@@ -78,7 +78,7 @@
 					<button class="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 transition-colors" onclick={() => run('restart')}>Перезапустить</button>
 					<button class="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 transition-colors" onclick={() => run('stop')}>Остановить</button>
 				</div>
-				<button class="mt-3 px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 transition-colors" onclick={rotateSecret}>Сменить secret</button>
+				<button class="mt-3 px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 transition-colors" onclick={rotateSecret}>Сменить секрет</button>
 			</div>
 
 			<div class="rounded-2xl border border-slate-700 bg-slate-900/70 backdrop-blur p-5">

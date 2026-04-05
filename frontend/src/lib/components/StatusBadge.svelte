@@ -10,11 +10,11 @@
 	let { status, size = 'md', showDot = true }: Props = $props();
 
 	const labels: Record<string, string> = {
-		running: 'Running',
-		stopped: 'Stopped',
-		error: 'Error',
-		failed: 'Failed',
-		unknown: 'Unknown'
+		running: 'Работает',
+		stopped: 'Остановлен',
+		error: 'Ошибка',
+		failed: 'Сбой',
+		unknown: 'Неизвестно'
 	};
 
 	const colors: Record<string, string> = {

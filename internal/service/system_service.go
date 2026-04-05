@@ -44,7 +44,6 @@ func (s *SystemService) GetSystemInfo(ctx context.Context) (*domain.SystemInfo, 
 		info.Hostname = h
 	}
 
-	// Kernel version from uname.
 	if out, err := exec.CommandContext(ctx, "uname", "-r").Output(); err == nil {
 		info.KernelVersion = strings.TrimSpace(string(out))
 	}
@@ -58,55 +57,49 @@ func (s *SystemService) GetSystemInfo(ctx context.Context) (*domain.SystemInfo, 
 	return info, nil
 }
 
-// CheckCompatibility verifies the host can run MTProxy and this panel.
+// CheckCompatibility verifies the host can run TeleMT and this panel.
 func (s *SystemService) CheckCompatibility(ctx context.Context) (*domain.CompatibilityReport, error) {
+	_ = ctx
 	report := &domain.CompatibilityReport{
 		Arch: runtime.GOARCH,
 	}
 
-	// systemctl
 	if path, err := exec.LookPath("systemctl"); err == nil {
 		report.SystemdAvailable = true
 		report.SystemctlPath = path
 	} else {
-		report.Issues = append(report.Issues, "systemctl not found — systemd required")
+		report.Issues = append(report.Issues, "systemctl not found - systemd required")
 	}
 
-	// journalctl (optional but desired)
 	if path, err := exec.LookPath("journalctl"); err == nil {
 		report.JournalctlPath = path
 	} else {
-		report.Issues = append(report.Issues, "journalctl not found — log viewing disabled")
+		report.Issues = append(report.Issues, "journalctl not found - log viewing disabled")
 	}
 
-	// Architecture check.
 	switch runtime.GOARCH {
-	case "amd64", "arm64", "arm":
+	case "amd64", "arm64":
 	default:
 		report.Issues = append(report.Issues,
-			fmt.Sprintf("architecture %s may not have a pre-built MTProxy binary", runtime.GOARCH))
+			fmt.Sprintf("architecture %s may not have a pre-built TeleMT binary", runtime.GOARCH))
 	}
 
-	// Linux only.
 	if runtime.GOOS != "linux" {
-		report.Issues = append(report.Issues, "MTProxy is Linux-only")
+		report.Issues = append(report.Issues, "TeleMT is Linux-only")
 	}
 
 	report.Supported = report.SystemdAvailable && runtime.GOOS == "linux"
 	return report, nil
 }
 
-// GetLogs returns the last n lines from the MTProxy service journal.
+// GetLogs returns the last n lines from the proxy service journal.
 func (s *SystemService) GetLogs(ctx context.Context, lines int) ([]string, error) {
 	if s.systemdM == nil {
 		return nil, fmt.Errorf("systemd manager not available")
 	}
-	return s.systemdM.GetLogs(ctx, mtproxyUnitName, lines)
+	return s.systemdM.GetLogs(ctx, telemtUnitName, lines)
 }
 
-// ---------- helpers ----------
-
-// readMemInfo parses /proc/meminfo for total and available memory in MB.
 func readMemInfo() (totalMB, availMB uint64) {
 	f, err := os.Open("/proc/meminfo")
 	if err != nil {
@@ -135,14 +128,11 @@ func readMemInfo() (totalMB, availMB uint64) {
 	return
 }
 
-// diskStats returns total and free disk space in GB for the filesystem
-// containing the given path.
 func diskStats(path string) (totalGB, freeGB float64) {
 	_ = path
 	return
 }
 
-// readUptime reads /proc/uptime and returns seconds as uint64.
 func readUptime() uint64 {
 	data, err := os.ReadFile("/proc/uptime")
 	if err != nil {

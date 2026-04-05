@@ -26,7 +26,7 @@
 {:else}
 	<div class="grid md:grid-cols-3 gap-4">
 		<div class="rounded-2xl border border-cyan-500/20 bg-slate-900/70 backdrop-blur p-5 shadow-lg shadow-cyan-950/20">
-			<div class="text-sm text-slate-400 mb-2">Состояние MTProxy</div>
+			<div class="text-sm text-slate-400 mb-2">Состояние TeleMT</div>
 			<StatusBadge status={status?.status ?? 'unknown'} />
 		</div>
 		<div class="rounded-2xl border border-emerald-500/20 bg-slate-900/70 backdrop-blur p-5 shadow-lg shadow-emerald-950/20">
@@ -35,7 +35,7 @@
 		</div>
 		<div class="rounded-2xl border border-slate-700 bg-slate-900/70 backdrop-blur p-5 shadow-lg shadow-black/20">
 			<div class="text-sm text-slate-400 mb-2">Хост</div>
-			<div class="text-xl font-semibold">{systemInfo?.hostname ?? 'не определён'}</div>
+			<div class="text-xl font-semibold">{systemInfo?.hostname ?? 'не определен'}</div>
 		</div>
 	</div>
 {/if}

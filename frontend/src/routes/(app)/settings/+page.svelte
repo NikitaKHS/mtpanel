@@ -36,7 +36,7 @@
 			await api.settings.changePassword(currentPassword, newPassword);
 			currentPassword = '';
 			newPassword = '';
-			notificationStore.success('Пароль обновлён');
+			notificationStore.success('Пароль обновлен');
 		} catch (e) {
 			notificationStore.error(e instanceof Error ? e.message : 'Не удалось сменить пароль');
 		}
@@ -58,7 +58,7 @@
 				<input id="listen-addr" bind:value={listenAddr} class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 mt-1" />
 			</div>
 			<div>
-				<label class="text-xs text-slate-400" for="proxy-port">Порт MTProxy</label>
+				<label class="text-xs text-slate-400" for="proxy-port">Порт TeleMT</label>
 				<input id="proxy-port" type="number" bind:value={proxyPort} class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 mt-1" />
 			</div>
 			<button class="px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 transition-colors" onclick={saveSettings}>Сохранить</button>

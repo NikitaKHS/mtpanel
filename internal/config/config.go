@@ -66,7 +66,7 @@ func defaults() *Config {
 		ListenAddr:     ":8080",
 		DataDir:        "/var/lib/mtpanel",
 		DBPath:         "mtpanel.db",
-		MTProxyBinPath: "/usr/local/bin/mtproto-proxy",
+		MTProxyBinPath: "/opt/telemt/telemt",
 		MTProxyPort:    443,
 		LogLevel:       "info",
 		JWTExpireHours: 24,
