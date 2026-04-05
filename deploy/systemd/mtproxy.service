@@ -1,0 +1,75 @@
+# This unit file is generated and installed by MTPanel when MTProxy is first set up.
+# It lives at /etc/systemd/system/mtproxy.service on the target server.
+# MTPanel renders it with the actual values before writing it to disk.
+#
+# Template variables (replaced at render time):
+#   {{.Port}}       — MTProxy listen port  (e.g. 443)
+#   {{.HTTPPort}}   — Internal HTTP port   (e.g. 8888)
+#   {{.Secret}}     — 32-hex-char secret
+#   {{.Workers}}    — Number of workers    (e.g. 1)
+
+[Unit]
+Description=MTProxy - Telegram MTProto Proxy
+Documentation=https://github.com/TelegramMessenger/MTProxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mtproxy
+Group=mtproxy
+WorkingDirectory=/opt/mtproxy
+
+# Main proxy process — arguments are written by MTPanel based on current config.
+# The -u flag drops to the mtproxy user (redundant with User= but kept for safety).
+ExecStart=/opt/mtproxy/mtproto-proxy \
+    -u mtproxy \
+    -p {{.HTTPPort}} \
+    -H {{.Port}} \
+    -S {{.Secret}} \
+    --aes-pwd /opt/mtproxy/proxy-secret \
+    /opt/mtproxy/proxy-multi.conf \
+    -M {{.Workers}}
+
+# Graceful reload: send SIGUSR1 to reopen config files
+ExecReload=/bin/kill -USR1 $MAINPID
+
+Restart=always
+RestartSec=5s
+TimeoutStartSec=30s
+TimeoutStopSec=15s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mtproxy
+
+# ---------------------------------------------------------------------------
+# Security hardening
+# ---------------------------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mtproxy
+
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+# MTProxy needs to bind to the proxy port (potentially < 1024)
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+SystemCallFilter=@system-service @network-io
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

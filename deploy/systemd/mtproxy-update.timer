@@ -1,0 +1,21 @@
+[Unit]
+Description=MTProxy Config Update Timer - Refresh Telegram secret and config daily
+Requires=mtproxy-update.service
+
+[Timer]
+# Run once per day at a randomised time between 03:00 and 04:00
+# (RandomizedDelaySec spreads load across the fleet)
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=3600
+
+# Also fire once immediately when the timer unit is first enabled,
+# so fresh installs don't have to wait until 03:00
+OnBootSec=2min
+
+# Keep at least this long between runs even if the timer fires late
+AccuracySec=10min
+
+Persistent=true
+
+[Install]
+WantedBy=timers.target

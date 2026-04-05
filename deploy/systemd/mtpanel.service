@@ -1,0 +1,78 @@
+[Unit]
+Description=MTPanel - MTProxy Management Panel
+Documentation=https://github.com/NikitaKHS/mtpanel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mtpanel
+Group=mtpanel
+WorkingDirectory=/opt/mtpanel
+
+# Load environment overrides (file is optional — dash prefix silences missing-file errors)
+EnvironmentFile=-/etc/mtpanel/mtpanel.env
+
+ExecStart=/opt/mtpanel/mtpanel
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart behaviour
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+
+# Logging — all output goes to journald, readable via:
+#   journalctl -u mtpanel -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mtpanel
+
+# ---------------------------------------------------------------------------
+# Security hardening
+# ---------------------------------------------------------------------------
+
+# Never allow the process to gain new privileges via setuid/setgid binaries
+NoNewPrivileges=true
+
+# Mount private /tmp and /dev
+PrivateTmp=true
+PrivateDevices=true
+
+# Make /usr, /boot, /etc read-only; allow only explicit ReadWritePaths
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mtpanel /etc/mtpanel
+
+# Protect kernel interfaces
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+
+# Misc restrictions
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+# Allow JIT (Go runtime needs W+X in some configurations)
+MemoryDenyWriteExecute=false
+RestrictNamespaces=true
+
+# Limit system calls to those required for a typical network service
+SystemCallFilter=@system-service
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+
+# Drop all capabilities — the panel itself does not need any.
+# If the panel port is < 1024, uncomment the two lines below instead:
+CapabilityBoundingSet=
+AmbientCapabilities=
+# CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+# AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Prevent privilege escalation through the filesystem
+ProtectProc=invisible
+ProcSubset=pid
+
+[Install]
+WantedBy=multi-user.target
