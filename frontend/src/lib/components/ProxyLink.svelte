@@ -13,9 +13,32 @@
 	let copied = $state(false);
 	let showQrModal = $state(false);
 
+	function copyWithExecCommand(text: string): boolean {
+		const textarea = document.createElement('textarea');
+		textarea.value = text;
+		textarea.setAttribute('readonly', '');
+		textarea.style.position = 'fixed';
+		textarea.style.left = '-9999px';
+		document.body.appendChild(textarea);
+		textarea.select();
+		textarea.setSelectionRange(0, textarea.value.length);
+		let ok = false;
+		try {
+			ok = document.execCommand('copy');
+		} catch {
+			ok = false;
+		}
+		document.body.removeChild(textarea);
+		return ok;
+	}
+
 	async function copyToClipboard() {
 		try {
-			await navigator.clipboard.writeText(url);
+			if (navigator.clipboard?.writeText && window.isSecureContext) {
+				await navigator.clipboard.writeText(url);
+			} else if (!copyWithExecCommand(url)) {
+				throw new Error('copy_failed');
+			}
 			copied = true;
 			notificationStore.success('Ссылка скопирована');
 			setTimeout(() => (copied = false), 2000);
