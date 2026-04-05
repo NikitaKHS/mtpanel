@@ -9,7 +9,7 @@ Self-hosted веб-панель для управления **TeleMT** на Linu
 3. [Требования](#требования)
 4. [Установка в одну строку](#установка-в-одну-строку)
 5. [Параметры установщика](#параметры-установщика)
-6. [Что установится автоматически](#что-установится-автоматически)
+6. [Что делается автоматически](#что-делается-автоматически)
 7. [Первый запуск](#первый-запуск)
 8. [Скриншоты](#скриншоты)
 9. [Полное удаление](#полное-удаление)
@@ -17,27 +17,26 @@ Self-hosted веб-панель для управления **TeleMT** на Linu
 
 ## Что это
 
-MTPanel — это панель управления TeleMT с простым сценарием:
+MTPanel дает простой сценарий:
 
-- поставить одной командой;
+- установить одной командой;
 - открыть UI;
-- установить/перезапустить TeleMT;
-- генерировать и отзывать proxy-ссылки.
+- управлять TeleMT;
+- генерировать/отзывать proxy-ссылки.
 
 ## Возможности
 
-- Авторизация и первичная настройка.
+- Первичная настройка и авторизация.
 - Управление TeleMT (`install/start/stop/restart`).
-- Генерация proxy-ссылок (`tg://proxy?...`) в 1 клик.
-- Просмотр логов и статуса.
-- Проверка и применение обновлений TeleMT.
-- Автоматическая настройка firewall в install script.
+- Генерация `tg://proxy?...` ссылок в 1 клик.
+- Просмотр статуса и логов.
+- Проверка/применение обновлений TeleMT.
+- Автоматическая настройка firewall в installer.
 
 ## Требования
 
-- Linux (Ubuntu/Debian/RHEL-family/Arch-family).
-- `systemd`.
-- Root-доступ (`sudo`).
+- Linux + `systemd`.
+- Root (`sudo`).
 
 ## Установка в одну строку
 
@@ -51,56 +50,60 @@ curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh |
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash -s -- --port 8080 --proxy-port 443
 ```
 
-## Параметры установщика
-
-- `--port <port>` — порт панели (по умолчанию `8080`).
-- `--proxy-port <port>` — порт TeleMT (по умолчанию `443`).
-- `--panel-allow <CIDR>` — доступ к панели только из указанной сети (например, `1.2.3.4/32`).
-- `--repo <owner/repo>` — репозиторий для релизов.
-
-Пример с ограничением доступа к панели:
+С ограничением доступа к панели:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash -s -- --panel-allow 1.2.3.4/32
 ```
 
-## Что установится автоматически
+## Параметры установщика
 
-Установщик:
+- `--port <port>` — порт панели (по умолчанию `8080`).
+- `--proxy-port <port>` — порт TeleMT (по умолчанию `443`).
+- `--panel-allow <CIDR>` — сеть, которой разрешен доступ к панели.
+- `--repo <owner/repo>` — репозиторий релизов.
 
-1. проверит систему и зависимости;
-2. скачает/соберет бинарник и фронтенд;
-3. создаст конфиг в `/etc/mtpanel/config.json`;
-4. удалит старые `mtpanel.service.d` overrides;
-5. поставит стабильный `mtpanel.service`;
-6. применит firewall:
+## Что делается автоматически
+
+Installer:
+
+1. Проверяет ОС/архитектуру/зависимости.
+2. Скачивает или собирает backend и frontend.
+3. Пишет конфиг в `/etc/mtpanel/config.json`.
+4. Удаляет старые `mtpanel.service.d` overrides.
+5. Ставит стабильный `mtpanel.service`.
+6. Применяет firewall:
    - `proxy-port` открыт для всех;
-   - `panel-port` ограничен SSH IP (или открыт для всех, если IP не определён).
+   - `panel-port` ограничен SSH IP (или открыт всем, если IP не определился).
 
 ## Первый запуск
 
 1. Откройте `http://<SERVER_IP>:8080`.
-2. Перейдите на `/setup`.
-3. Задайте пароль администратора.
-4. Войдите через `/login`.
-5. Откройте раздел `Прокси` и установите TeleMT.
+2. Перейдите на `/setup` и задайте пароль администратора.
+3. Войдите через `/login`.
+4. В разделе `Прокси` установите TeleMT.
 
 ## Скриншоты
 
-Добавьте изображения в `docs/screenshots/`:
+Разместите файлы в `docs/screenshots/`:
 
 ```text
 docs/screenshots/dashboard.png
 docs/screenshots/proxy.png
 docs/screenshots/links.png
+docs/screenshots/logs.png
 docs/screenshots/updates.png
+docs/screenshots/settings.png
 ```
 
-Пример вставки:
+Галерея:
 
-```md
-![Dashboard](docs/screenshots/dashboard.png)
-```
+![Обзор](docs/screenshots/dashboard.png)
+![Прокси](docs/screenshots/proxy.png)
+![Ссылки](docs/screenshots/links.png)
+![Логи](docs/screenshots/logs.png)
+![Обновления](docs/screenshots/updates.png)
+![Настройки](docs/screenshots/settings.png)
 
 ## Полное удаление
 

@@ -84,7 +84,18 @@ Put screenshots into `docs/screenshots/`:
 - `dashboard.png`
 - `proxy.png`
 - `links.png`
+- `logs.png`
 - `updates.png`
+- `settings.png`
+
+Gallery:
+
+![Dashboard](docs/screenshots/dashboard.png)
+![Proxy](docs/screenshots/proxy.png)
+![Links](docs/screenshots/links.png)
+![Logs](docs/screenshots/logs.png)
+![Updates](docs/screenshots/updates.png)
+![Settings](docs/screenshots/settings.png)
 
 ## Full Uninstall
 
