@@ -610,57 +610,19 @@ install_panel_service() {
 
   cat > "${unit_file}" <<EOF
 [Unit]
-Description=MTPanel - TeleMT Management Panel
-Documentation=https://github.com/${GITHUB_REPO}
-After=network-online.target
-Wants=network-online.target
-# Restart if TeleMT service is cycled
-PartOf=telemt.service
+Description=MTPanel
+After=network.target
 
 [Service]
 Type=simple
 User=root
 Group=root
 WorkingDirectory=${INSTALL_DIR}
-EnvironmentFile=-${CONFIG_DIR}/mtpanel.env
+Environment=MTPANEL_CONFIG=${CONFIG_FILE}
 ExecStart=${INSTALL_DIR}/${BINARY_NAME}
-ExecReload=/bin/kill -HUP \$MAINPID
 
 Restart=on-failure
-RestartSec=5s
-TimeoutStartSec=30s
-TimeoutStopSec=30s
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=mtpanel
-
-# ---- Security hardening (stable defaults) ----
-NoNewPrivileges=false
-PrivateTmp=false
-PrivateDevices=false
-ProtectSystem=off
-ProtectHome=off
-ReadWritePaths=
-ProtectKernelTunables=false
-ProtectKernelModules=false
-ProtectControlGroups=false
-RestrictSUIDSGID=false
-RestrictRealtime=false
-LockPersonality=false
-MemoryDenyWriteExecute=false
-RestrictNamespaces=false
-SystemCallFilter=
-SystemCallErrorNumber=
-
-# Allow systemd management for TeleMT
-# The panel calls systemctl to manage telemt.service
-AmbientCapabilities=
-CapabilityBoundingSet=
-# Needed to bind ports < 1024 only if panel port is privileged
-# CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-# AmbientCapabilities=CAP_NET_BIND_SERVICE
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target

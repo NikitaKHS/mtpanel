@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh |
 4. Ставит фронтенд-ассеты.
 5. Пишет конфиг панели в `/etc/mtpanel/config.json`.
 6. Удаляет старые `mtpanel.service.d/override.conf` (если есть).
-7. Ставит и запускает `mtpanel.service`.
+7. Ставит и запускает минимальный стабильный `mtpanel.service` (без проблемного hardening).
 
 ## Первый запуск
 

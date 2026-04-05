@@ -1,52 +1,16 @@
 [Unit]
-Description=MTPanel - TeleMT Management Panel
-Documentation=https://github.com/NikitaKHS/mtpanel
-After=network-online.target
-Wants=network-online.target
-PartOf=telemt.service
+Description=MTPanel
+After=network.target
 
 [Service]
 Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/mtpanel
-EnvironmentFile=-/etc/mtpanel/mtpanel.env
+Environment=MTPANEL_CONFIG=/etc/mtpanel/config.json
 ExecStart=/opt/mtpanel/mtpanel
-ExecReload=/bin/kill -HUP $MAINPID
-
 Restart=on-failure
-RestartSec=5s
-TimeoutStartSec=30s
-TimeoutStopSec=30s
-
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=mtpanel
-
-NoNewPrivileges=false
-PrivateTmp=false
-PrivateDevices=false
-ProtectSystem=off
-ProtectHome=off
-ReadWritePaths=
-ProtectKernelTunables=false
-ProtectKernelModules=false
-ProtectKernelLogs=false
-ProtectControlGroups=false
-RestrictSUIDSGID=false
-RestrictRealtime=false
-LockPersonality=false
-MemoryDenyWriteExecute=false
-RestrictNamespaces=false
-SystemCallFilter=
-SystemCallArchitectures=
-SystemCallErrorNumber=
-
-CapabilityBoundingSet=
-AmbientCapabilities=
-
-ProtectProc=default
-ProcSubset=all
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
