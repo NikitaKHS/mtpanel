@@ -628,23 +628,23 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=mtpanel
 
-# ---- Security hardening ----
-NoNewPrivileges=true
-PrivateTmp=true
-PrivateDevices=true
-ProtectSystem=full
-ProtectHome=true
-ReadWritePaths=${DATA_DIR} ${CONFIG_DIR} ${TELEMT_CONFIG_DIR} ${PROXY_DIR} /etc/systemd/system
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
-RestrictSUIDSGID=true
-RestrictRealtime=true
-LockPersonality=true
+# ---- Security hardening (stable defaults) ----
+NoNewPrivileges=false
+PrivateTmp=false
+PrivateDevices=false
+ProtectSystem=off
+ProtectHome=off
+ReadWritePaths=
+ProtectKernelTunables=false
+ProtectKernelModules=false
+ProtectControlGroups=false
+RestrictSUIDSGID=false
+RestrictRealtime=false
+LockPersonality=false
 MemoryDenyWriteExecute=false
-RestrictNamespaces=true
-SystemCallFilter=@system-service
-SystemCallErrorNumber=EPERM
+RestrictNamespaces=false
+SystemCallFilter=
+SystemCallErrorNumber=
 
 # Allow systemd management for TeleMT
 # The panel calls systemctl to manage telemt.service

@@ -23,30 +23,30 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=mtpanel
 
-NoNewPrivileges=true
-PrivateTmp=true
-PrivateDevices=true
-ProtectSystem=full
-ProtectHome=true
-ReadWritePaths=/var/lib/mtpanel /etc/mtpanel /etc/telemt /opt/telemt /etc/systemd/system
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectKernelLogs=true
-ProtectControlGroups=true
-RestrictSUIDSGID=true
-RestrictRealtime=true
-LockPersonality=true
+NoNewPrivileges=false
+PrivateTmp=false
+PrivateDevices=false
+ProtectSystem=off
+ProtectHome=off
+ReadWritePaths=
+ProtectKernelTunables=false
+ProtectKernelModules=false
+ProtectKernelLogs=false
+ProtectControlGroups=false
+RestrictSUIDSGID=false
+RestrictRealtime=false
+LockPersonality=false
 MemoryDenyWriteExecute=false
-RestrictNamespaces=true
-SystemCallFilter=@system-service
-SystemCallArchitectures=native
-SystemCallErrorNumber=EPERM
+RestrictNamespaces=false
+SystemCallFilter=
+SystemCallArchitectures=
+SystemCallErrorNumber=
 
 CapabilityBoundingSet=
 AmbientCapabilities=
 
-ProtectProc=invisible
-ProcSubset=pid
+ProtectProc=default
+ProcSubset=all
 
 [Install]
 WantedBy=multi-user.target

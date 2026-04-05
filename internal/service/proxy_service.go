@@ -176,6 +176,10 @@ func (s *ProxyService) Install(ctx context.Context) error {
 	if err := s.settings.Set(ctx, "install_state", "installed"); err != nil {
 		return fmt.Errorf("proxy: update install state: %w", err)
 	}
+	if v := mtproxyVersion(s.cfg.MTProxyBinPath); v != "" && v != "unknown" {
+		_ = s.settings.Set(ctx, "telemt_version", v)
+		_ = s.settings.Set(ctx, "mtproxy_version", v)
+	}
 	if err := s.settings.Set(ctx, "is_first_run", "false"); err != nil {
 		return fmt.Errorf("proxy: update first_run: %w", err)
 	}

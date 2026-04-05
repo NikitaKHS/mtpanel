@@ -66,6 +66,13 @@ func (u *UpdateService) CheckUpdate(ctx context.Context) (*domain.UpdateInfo, er
 	if current == "" {
 		current, _ = u.settings.Get(ctx, "mtproxy_version")
 	}
+	if current == "" {
+		current = mtproxyVersion(u.cfg.MTProxyBinPath)
+		if current != "" && current != "unknown" {
+			_ = u.settings.Set(ctx, "telemt_version", current)
+			_ = u.settings.Set(ctx, "mtproxy_version", current)
+		}
+	}
 
 	info := &domain.UpdateInfo{
 		CurrentVersion:  current,
