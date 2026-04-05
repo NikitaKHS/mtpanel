@@ -17,6 +17,20 @@ curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh |
 - [Russian version](README.ru.md)
 - [English version](README.en.md)
 
+## For Whom
+
+MTPanel is for users who want to run and manage a Telegram proxy on a VPS
+without manual Linux and systemd setup.
+
+## What It Does
+
+- one-line installation
+- web UI for TeleMT management
+- start, stop, restart
+- logs and health status
+- update checks
+- proxy link generation
+
 ## Screenshots
 
 Gallery:
