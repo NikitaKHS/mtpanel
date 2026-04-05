@@ -1,59 +1,59 @@
 # MTPanel
 
-Self-hosted control panel for **TeleMT** (`Go + SvelteKit + SQLite + systemd`).
+Self-hosted панель для управления **TeleMT** (`Go + SvelteKit + SQLite + systemd`).
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](#)
 [![Service: systemd](https://img.shields.io/badge/service-systemd-green.svg)](#)
 
-## Quick Start
+## Быстрый старт
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash
 ```
 
-## Languages
+## Языки
 
-- [Russian version](README.ru.md)
+- [Русская версия](README.ru.md)
 - [English version](README.en.md)
 
-## For Whom
+## Для кого
 
-MTPanel is for users who want to run and manage a Telegram proxy on a VPS
-without manual Linux and systemd setup.
+MTPanel для тех, кто хочет запустить и поддерживать Telegram-прокси на VPS
+без ручной настройки Linux и systemd.
 
-## What It Does
+## Что умеет
 
-- one-line installation
-- web UI for TeleMT management
-- start, stop, restart
-- logs and health status
-- update checks
-- proxy link generation
+- установка одной командой
+- веб-панель для управления TeleMT
+- запуск, остановка, перезапуск
+- просмотр логов и статуса
+- проверка обновлений
+- генерация proxy-ссылок
 
-## Screenshots
+## Скриншоты
 
-Gallery:
+Галерея:
 
-**Dashboard**
-![Dashboard](docs/screenshots/dashboard.png)
-
----
-
-**Proxy**
-![Proxy](docs/screenshots/proxy.png)
+**Обзор**
+![Обзор](docs/screenshots/dashboard.png)
 
 ---
 
-**Links**
-![Links](docs/screenshots/links.png)
+**Прокси**
+![Прокси](docs/screenshots/proxy.png)
 
 ---
 
-**Updates**
-![Updates](docs/screenshots/updates.png)
+**Ссылки**
+![Ссылки](docs/screenshots/links.png)
 
-## Project Links
+---
 
-- Repository: <https://github.com/NikitaKHS/mtpanel>
-- Installer: <https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh>
+**Обновления**
+![Обновления](docs/screenshots/updates.png)
+
+## Ссылки проекта
+
+- Репозиторий: <https://github.com/NikitaKHS/mtpanel>
+- Установщик: <https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh>
