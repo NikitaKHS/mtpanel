@@ -78,7 +78,11 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.svc.SetupAdmin(r.Context(), req.Password, realClientIP(r))
 	if err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+		if isPasswordPolicyError(err) {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -87,6 +91,15 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		Token:     res.Token,
 		ExpiresAt: res.ExpiresAt.Format(time.RFC3339),
 	})
+}
+
+func isPasswordPolicyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return msg == "password must be at least 12 characters" ||
+		msg == "password must not exceed 128 characters"
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {

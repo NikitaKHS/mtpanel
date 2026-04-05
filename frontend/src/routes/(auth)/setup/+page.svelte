@@ -33,10 +33,10 @@
 	<p class="text-sm text-slate-300 mb-6">Создайте пароль администратора (минимум 12 символов)</p>
 
 	<label class="text-sm text-slate-200 block mb-2" for="password">Новый пароль</label>
-	<input id="password" type="password" bind:value={password} required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 mb-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+	<input id="password" type="password" minlength="12" bind:value={password} required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 mb-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
 
 	<label class="text-sm text-slate-200 block mb-2" for="confirm">Повторите пароль</label>
-	<input id="confirm" type="password" bind:value={confirm} required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 mb-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
+	<input id="confirm" type="password" minlength="12" bind:value={confirm} required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 mb-4 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/50" />
 
 	<button type="submit" disabled={loading} class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium disabled:opacity-60 transition-colors">
 		{loading ? 'Сохраняем...' : 'Завершить настройку'}

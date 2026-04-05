@@ -85,7 +85,7 @@ func main() {
 		Version:   "dev",
 	})
 
-	handler := withSPA(apiRouter, filepath.Join("web", "dist"))
+	handler := withSPA(apiRouter, resolveStaticRoot())
 
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -180,4 +180,24 @@ func withSPA(api http.Handler, staticRoot string) http.Handler {
 
 		http.ServeFile(w, r, indexPath)
 	})
+}
+
+func resolveStaticRoot() string {
+	// 1) Default for systemd unit with WorkingDirectory=/opt/mtpanel
+	relative := filepath.Join("web", "dist")
+	if st, err := os.Stat(filepath.Join(relative, "index.html")); err == nil && !st.IsDir() {
+		return relative
+	}
+
+	// 2) Fallback to directory near the executable
+	if exe, err := os.Executable(); err == nil {
+		exeRoot := filepath.Dir(exe)
+		candidate := filepath.Join(exeRoot, "web", "dist")
+		if st, err := os.Stat(filepath.Join(candidate, "index.html")); err == nil && !st.IsDir() {
+			return candidate
+		}
+	}
+
+	// Keep old behavior for error visibility in logs/HTTP if assets are absent.
+	return relative
 }

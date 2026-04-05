@@ -247,18 +247,11 @@ get_latest_release() {
 # ---------------------------------------------------------------------------
 # Download and verify panel binary
 # ---------------------------------------------------------------------------
-ensure_build_tools() {
+ensure_frontend_tools() {
   local pkgs=()
 
   if ! command -v git &>/dev/null; then
     pkgs+=("git")
-  fi
-  if ! command -v go &>/dev/null; then
-    case "${OS_FAMILY}" in
-      debian) pkgs+=("golang-go") ;;
-      rhel)   pkgs+=("golang") ;;
-      arch)   pkgs+=("go") ;;
-    esac
   fi
   if ! command -v node &>/dev/null; then
     case "${OS_FAMILY}" in
@@ -282,9 +275,61 @@ ensure_build_tools() {
     done
   fi
 
-  command -v go &>/dev/null || die "Go compiler is required for source-build fallback but not available"
   command -v git &>/dev/null || die "Git is required for source-build fallback but not available"
   command -v npm &>/dev/null || die "npm is required for source-build fallback but not available"
+}
+
+ensure_build_tools() {
+  ensure_frontend_tools
+
+  if ! command -v go &>/dev/null; then
+    case "${OS_FAMILY}" in
+      debian) install_pkg "golang-go" ;;
+      rhel)   install_pkg "golang" ;;
+      arch)   install_pkg "go" ;;
+    esac
+  fi
+
+  command -v go &>/dev/null || die "Go compiler is required for source-build fallback but not available"
+}
+
+build_frontend_for_tag() {
+  local tag="$1"
+  local workdir="/tmp/mtpanel-web-src.$$"
+  local repo_url="https://github.com/${GITHUB_REPO}.git"
+  local tmp_web="/tmp/mtpanel-web-dist.$$"
+
+  ensure_frontend_tools
+
+  rm -rf "${workdir}"
+  if ! git clone --depth 1 --branch "${tag}" "${repo_url}" "${workdir}" >/dev/null 2>&1; then
+    warn "Failed to clone tag ${tag} for frontend build fallback"
+    rm -rf "${workdir}"
+    return 1
+  fi
+
+  info "Building frontend bundle from source tag ${tag}"
+  (
+    cd "${workdir}/frontend" && \
+    npm ci --silent && \
+    npm run build >/dev/null
+  ) || {
+    rm -rf "${workdir}"
+    return 1
+  }
+
+  if [[ ! -d "${workdir}/web/dist" ]]; then
+    rm -rf "${workdir}"
+    return 1
+  fi
+  rm -rf "${tmp_web}"
+  mkdir -p "${tmp_web}"
+  cp -r "${workdir}/web/dist/." "${tmp_web}/"
+  rm -rf "${workdir}"
+
+  DOWNLOADED_WEB_DIST="${tmp_web}"
+  success "Frontend bundle prepared"
+  return 0
 }
 
 build_binary_from_source() {
@@ -337,9 +382,12 @@ download_binary() {
 
     local binary_name="mtpanel-linux-${ARCH}"
     local checksum_name="mtpanel-linux-${ARCH}.sha256"
+    local web_bundle_name="web-dist.tar.gz"
     local base_url="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}"
     local tmp_bin="/tmp/mtpanel-download"
     local tmp_sum="/tmp/mtpanel-download.sha256"
+    local tmp_web_tgz="/tmp/mtpanel-web-dist.tar.gz.$$"
+    local tmp_web_dir="/tmp/mtpanel-web-dist.$$"
 
     info "Downloading binary: ${binary_name}"
     if ! download "${base_url}/${binary_name}" "${tmp_bin}" 2>/dev/null; then
@@ -367,6 +415,28 @@ download_binary() {
 
     chmod +x "${tmp_bin}"
     DOWNLOADED_BINARY="${tmp_bin}"
+
+    info "Fetching frontend assets bundle: ${web_bundle_name}"
+    if download "${base_url}/${web_bundle_name}" "${tmp_web_tgz}" 2>/dev/null; then
+      rm -rf "${tmp_web_dir}"
+      mkdir -p "${tmp_web_dir}"
+      if tar -xzf "${tmp_web_tgz}" -C "${tmp_web_dir}" >/dev/null 2>&1; then
+        DOWNLOADED_WEB_DIST="${tmp_web_dir}"
+        success "Frontend assets bundle downloaded"
+      else
+        warn "Failed to extract ${web_bundle_name}; trying source-build fallback for frontend"
+      fi
+      rm -f "${tmp_web_tgz}"
+    else
+      warn "Release frontend bundle not found; trying source-build fallback for frontend"
+    fi
+
+    if [[ -z "${DOWNLOADED_WEB_DIST:-}" || ! -d "${DOWNLOADED_WEB_DIST}" ]]; then
+      if ! build_frontend_for_tag "${RELEASE_TAG}"; then
+        warn "Frontend fallback build failed; proceeding without static assets"
+      fi
+    fi
+
     return
   fi
 

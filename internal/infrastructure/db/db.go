@@ -3,10 +3,10 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,9 +16,8 @@ import (
 )
 
 // Migrations holds SQL migration files.
-// By default migrations are read from the working directory ("./migrations").
-// Main may override this with an embedded FS in the future.
-var Migrations fs.FS = os.DirFS(".")
+// By default migrations are embedded into the binary for reliable deployments.
+var Migrations fs.FS = embeddedMigrations
 
 // MigrationsDir is the path inside the embed.FS that contains *.sql files.
 var MigrationsDir = "migrations"
@@ -140,8 +139,8 @@ func (d *DB) migrate(ctx context.Context) error {
 func listMigrationFiles() ([]string, error) {
 	entries, err := fs.ReadDir(Migrations, MigrationsDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("migrations dir %q was not found in embedded filesystem", MigrationsDir)
 		}
 		return nil, fmt.Errorf("reading migrations dir: %w", err)
 	}
@@ -153,6 +152,9 @@ func listMigrationFiles() ([]string, error) {
 		}
 	}
 	sort.Strings(names)
+	if len(names) == 0 {
+		return nil, fmt.Errorf("no migration files found in %q", MigrationsDir)
+	}
 	return names, nil
 }
 

@@ -1,4 +1,4 @@
-# MTPanel
+﻿# MTPanel
 
 Self-hosted веб-панель для управления MTProxy (`Go + SvelteKit + SQLite + systemd`).
 
@@ -8,42 +8,37 @@ Self-hosted веб-панель для управления MTProxy (`Go + Svelt
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash
 ```
 
-С указанием портов:
+С явной настройкой портов:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash -s -- --port 8080 --mtproxy-port 443
 ```
 
-## Быстрая локальная установка (из этого репозитория)
-
-```bash
-sudo bash ./install.sh --port 8080 --mtproxy-port 443
-```
-
 ## Что делает установщик
 
-1. Определяет ОС/архитектуру и проверяет наличие `systemd`.
-2. Создаёт системного пользователя и нужные директории.
-3. Пытается скачать бинарник панели из GitHub Release.
-4. Если релиз/бинарник отсутствует, автоматически собирает `mtpanel` из исходников репозитория.
-5. Пишет конфиг в `/etc/mtpanel/config.json`.
-6. Устанавливает и запускает `mtpanel.service`.
-7. Показывает URL панели и начальный пароль.
+1. Проверяет ОС, архитектуру и наличие `systemd`.
+2. Создаёт пользователя `mtpanel` и системные директории.
+3. Ставит бинарник панели из GitHub Release (или собирает из исходников, если релиз недоступен).
+4. Ставит фронтенд-ассеты из релиза `web-dist.tar.gz`.
+5. Если ассеты не найдены в релизе, собирает фронтенд из исходников по тегу релиза.
+6. Пишет конфиг в `/etc/mtpanel/config.json`.
+7. Создаёт и запускает `mtpanel.service`.
 
-## Smoke-тест (основной сценарий)
+## Первый запуск
 
 1. Откройте `http://<SERVER_IP>:8080`.
-2. Перейдите на `/setup` и задайте пароль администратора.
-3. Выполните вход.
-4. Откройте страницу `Proxy` и нажмите `Install MTProxy`.
-5. Проверьте, что статус стал `running`.
-6. Откройте `Links`, создайте ссылку, скопируйте/поделитесь.
-7. Отзовите одну ссылку и проверьте, что она стала неактивной.
-8. Откройте `Logs` и убедитесь, что видны логи MTProxy.
-9. Откройте `Updates` и запустите проверку обновлений.
-10. Откройте `Settings`, измените порт MTProxy и пароль.
+2. Если видите ответ `428 Precondition Required` на login: это нормально, сначала откройте `/setup`.
+3. Задайте пароль администратора (от 12 до 128 символов).
+4. После этого вход через `/login` начнёт работать.
 
-## Полезные команды сервисов
+## Быстрая проверка
+
+1. В панели откройте `Proxy` и установите MTProxy.
+2. Убедитесь, что статус стал `running`.
+3. В `Links` создайте ссылку и проверьте её копирование.
+4. В `Logs` проверьте, что логи читаются.
+
+## Полезные команды
 
 ```bash
 sudo systemctl status mtpanel
@@ -54,17 +49,23 @@ sudo systemctl status mtproto-proxy.service
 sudo journalctl -u mtproto-proxy.service -n 200 --no-pager
 ```
 
-## Удаление (вручную)
+## Типовые проблемы
+
+### `no such table: app_settings`
+
+Это означает, что не применились миграции БД. Обновите панель до последней версии и переустановите:
 
 ```bash
-sudo systemctl stop mtpanel
-sudo systemctl disable mtpanel
-sudo rm -f /etc/systemd/system/mtpanel.service
-sudo systemctl daemon-reload
+curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash
+sudo systemctl restart mtpanel
 ```
+
+### UI без стилей (чёрный текст на белом фоне)
+
+Обычно это значит, что не установились статические фронтенд-файлы. Выполните переустановку командой выше и затем сделайте hard refresh в браузере (`Ctrl+F5`).
 
 ## Примечания
 
-- Поддерживается только Linux + systemd.
+- Поддерживается Linux + systemd.
 - Для production рекомендуется reverse proxy + TLS.
 - Установщик идемпотентный, его можно запускать повторно для обновлений.
