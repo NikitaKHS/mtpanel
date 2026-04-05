@@ -12,7 +12,7 @@
 		try {
 			info = await api.updates.check();
 		} catch (e) {
-			notificationStore.error(e instanceof Error ? e.message : 'Failed to check updates');
+			notificationStore.error(e instanceof Error ? e.message : 'Не удалось проверить обновления');
 		} finally {
 			loading = false;
 		}
@@ -22,10 +22,10 @@
 		applying = true;
 		try {
 			const res = await api.updates.apply();
-			notificationStore.success(res.message || 'Update applied');
+			notificationStore.success(res.message || 'Обновление применено');
 			await check();
 		} catch (e) {
-			notificationStore.error(e instanceof Error ? e.message : 'Update failed');
+			notificationStore.error(e instanceof Error ? e.message : 'Ошибка обновления');
 		} finally {
 			applying = false;
 		}
@@ -34,27 +34,27 @@
 	onMount(check);
 </script>
 
-<h1 class="text-2xl font-semibold mb-6">Updates</h1>
+<h1 class="text-2xl font-semibold mb-6">Обновления</h1>
 
 {#if loading}
-	<p class="text-gray-400">Checking for updates...</p>
+	<p class="text-slate-400">Проверяем обновления...</p>
 {:else if info}
-	<div class="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
-		<div class="text-sm text-gray-400">Current: <span class="text-gray-200">{info.current_version || 'unknown'}</span></div>
-		<div class="text-sm text-gray-400">Latest: <span class="text-gray-200">{info.latest_version || 'unknown'}</span></div>
+	<div class="rounded-2xl border border-slate-700 bg-slate-900/70 backdrop-blur p-5 space-y-2">
+		<div class="text-sm text-slate-400">Текущая версия: <span class="text-slate-200">{info.current_version || 'unknown'}</span></div>
+		<div class="text-sm text-slate-400">Последняя версия: <span class="text-slate-200">{info.latest_version || 'unknown'}</span></div>
 		<div class="text-sm">
 			{#if info.update_available}
-				<span class="text-yellow-400">Update available</span>
+				<span class="text-amber-400">Доступно обновление</span>
 			{:else}
-				<span class="text-emerald-400">Up to date</span>
+				<span class="text-emerald-400">Актуальная версия</span>
 			{/if}
 		</div>
 
 		<div class="flex gap-2 pt-2">
-			<button class="px-3 py-2 rounded bg-gray-700" onclick={check}>Re-check</button>
+			<button class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors" onclick={check}>Проверить снова</button>
 			{#if info.update_available}
-				<button disabled={applying} class="px-3 py-2 rounded bg-cyan-700 disabled:opacity-60" onclick={apply}>
-					{applying ? 'Applying...' : 'Apply update'}
+				<button disabled={applying} class="px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 transition-colors disabled:opacity-60" onclick={apply}>
+					{applying ? 'Применяем...' : 'Установить обновление'}
 				</button>
 			{/if}
 		</div>

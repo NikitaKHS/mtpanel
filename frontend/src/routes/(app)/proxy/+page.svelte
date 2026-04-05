@@ -56,36 +56,36 @@
 	onMount(refresh);
 </script>
 
-<h1 class="text-2xl font-semibold mb-6">Proxy Management</h1>
+<h1 class="text-2xl font-semibold mb-6">Управление MTProxy</h1>
 
 {#if loading}
-	<p class="text-gray-400">Loading...</p>
+	<p class="text-slate-400">Загрузка статуса...</p>
 {:else}
 	<div class="grid lg:grid-cols-2 gap-6">
 		<div class="space-y-4">
-			<div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+			<div class="rounded-2xl border border-cyan-500/20 bg-slate-900/70 backdrop-blur p-5">
 				<div class="flex items-center justify-between mb-3">
-					<div class="text-sm text-gray-400">Current status</div>
+					<div class="text-sm text-slate-400">Текущий статус</div>
 					<StatusBadge status={status?.status ?? 'unknown'} />
 				</div>
-				<div class="text-xs text-gray-500">Port: {status?.port ?? 'n/a'}</div>
+				<div class="text-xs text-slate-500">Порт: {status?.port ?? 'не задан'}</div>
 			</div>
 
-			<div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-				<div class="text-sm text-gray-400 mb-3">Actions</div>
+			<div class="rounded-2xl border border-emerald-500/20 bg-slate-900/70 backdrop-blur p-5">
+				<div class="text-sm text-slate-400 mb-3">Действия</div>
 				<div class="flex gap-2">
-					<button class="px-3 py-2 rounded bg-emerald-600" onclick={() => run('start')}>Start</button>
-					<button class="px-3 py-2 rounded bg-yellow-600" onclick={() => run('restart')}>Restart</button>
-					<button class="px-3 py-2 rounded bg-red-600" onclick={() => run('stop')}>Stop</button>
+					<button class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition-colors" onclick={() => run('start')}>Запустить</button>
+					<button class="px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 transition-colors" onclick={() => run('restart')}>Перезапустить</button>
+					<button class="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 transition-colors" onclick={() => run('stop')}>Остановить</button>
 				</div>
-				<button class="mt-3 px-3 py-2 rounded bg-cyan-700" onclick={rotateSecret}>Rotate secret</button>
+				<button class="mt-3 px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 transition-colors" onclick={rotateSecret}>Сменить secret</button>
 			</div>
 
-			<div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-				<div class="text-sm text-gray-400 mb-3">Port</div>
+			<div class="rounded-2xl border border-slate-700 bg-slate-900/70 backdrop-blur p-5">
+				<div class="text-sm text-slate-400 mb-3">Порт</div>
 				<div class="flex gap-2 items-center">
-					<input type="number" min="1" max="65535" bind:value={port} class="bg-gray-950 border border-gray-700 rounded px-3 py-2 w-32" />
-					<button class="px-3 py-2 rounded bg-cyan-700" onclick={updatePort}>Apply</button>
+					<input type="number" min="1" max="65535" bind:value={port} class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 w-36" />
+					<button class="px-3 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-600 transition-colors" onclick={updatePort}>Применить</button>
 				</div>
 			</div>
 		</div>

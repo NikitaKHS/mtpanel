@@ -12,8 +12,16 @@ export interface Toast {
 function createNotificationStore() {
 	const { subscribe, update } = writable<Toast[]>([]);
 
+	function makeId(): string {
+		if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+			return crypto.randomUUID();
+		}
+		// Fallback for insecure contexts/older runtimes.
+		return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+	}
+
 	function add(type: ToastType, message: string, duration = 4000): void {
-		const id = crypto.randomUUID();
+		const id = makeId();
 		update((toasts) => [...toasts, { id, type, message, duration }]);
 
 		if (duration > 0) {

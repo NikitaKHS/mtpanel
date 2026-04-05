@@ -19,23 +19,23 @@
 	onMount(load);
 </script>
 
-<h1 class="text-2xl font-semibold mb-6">Dashboard</h1>
+<h1 class="text-2xl font-semibold mb-6">Обзор сервера</h1>
 
 {#if loading}
-	<p class="text-gray-400">Loading...</p>
+	<p class="text-slate-400">Загрузка данных...</p>
 {:else}
 	<div class="grid md:grid-cols-3 gap-4">
-		<div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-			<div class="text-sm text-gray-400 mb-2">Proxy status</div>
+		<div class="rounded-2xl border border-cyan-500/20 bg-slate-900/70 backdrop-blur p-5 shadow-lg shadow-cyan-950/20">
+			<div class="text-sm text-slate-400 mb-2">Состояние MTProxy</div>
 			<StatusBadge status={status?.status ?? 'unknown'} />
 		</div>
-		<div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-			<div class="text-sm text-gray-400 mb-2">Proxy port</div>
-			<div class="text-xl font-semibold">{status?.port ?? 'n/a'}</div>
+		<div class="rounded-2xl border border-emerald-500/20 bg-slate-900/70 backdrop-blur p-5 shadow-lg shadow-emerald-950/20">
+			<div class="text-sm text-slate-400 mb-2">Порт прокси</div>
+			<div class="text-xl font-semibold">{status?.port ?? 'не задан'}</div>
 		</div>
-		<div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
-			<div class="text-sm text-gray-400 mb-2">Host</div>
-			<div class="text-xl font-semibold">{systemInfo?.hostname ?? 'n/a'}</div>
+		<div class="rounded-2xl border border-slate-700 bg-slate-900/70 backdrop-blur p-5 shadow-lg shadow-black/20">
+			<div class="text-sm text-slate-400 mb-2">Хост</div>
+			<div class="text-xl font-semibold">{systemInfo?.hostname ?? 'не определён'}</div>
 		</div>
 	</div>
 {/if}
