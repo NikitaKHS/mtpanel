@@ -1,0 +1,14 @@
+﻿@import "tailwindcss";
+
+html,
+body,
+#svelte {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	font-family: "Inter", "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+	background: #020617;
+	color: #e2e8f0;
+}
