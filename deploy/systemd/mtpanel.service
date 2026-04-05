@@ -40,7 +40,7 @@ PrivateTmp=true
 PrivateDevices=true
 
 # Make /usr, /boot, /etc read-only; allow only explicit ReadWritePaths
-ProtectSystem=strict
+ProtectSystem=full
 ProtectHome=true
 ReadWritePaths=/var/lib/mtpanel /etc/mtpanel /opt/mtproxy /etc/systemd/system
 
