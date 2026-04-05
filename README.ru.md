@@ -85,20 +85,24 @@ Installer:
 
 ## Скриншоты
 
-Разместите файлы в `docs/screenshots/`:
-
-```text
-docs/screenshots/dashboard.png
-docs/screenshots/proxy.png
-docs/screenshots/links.png
-docs/screenshots/updates.png
-```
-
 Галерея:
 
+**Обзор сервера**
 ![Обзор](docs/screenshots/dashboard.png)
+
+---
+
+**Управление TeleMT (Прокси)**
 ![Прокси](docs/screenshots/proxy.png)
+
+---
+
+**Ссылки и секреты**
 ![Ссылки](docs/screenshots/links.png)
+
+---
+
+**Обновления**
 ![Обновления](docs/screenshots/updates.png)
 
 ## Полное удаление

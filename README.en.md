@@ -79,18 +79,24 @@ Installer will:
 
 ## Screenshots
 
-Put screenshots into `docs/screenshots/`:
-
-- `dashboard.png`
-- `proxy.png`
-- `links.png`
-- `updates.png`
-
 Gallery:
 
+**Server Dashboard**
 ![Dashboard](docs/screenshots/dashboard.png)
+
+---
+
+**TeleMT Proxy Management**
 ![Proxy](docs/screenshots/proxy.png)
+
+---
+
+**Links and Secrets**
 ![Links](docs/screenshots/links.png)
+
+---
+
+**Updates**
 ![Updates](docs/screenshots/updates.png)
 
 ## Full Uninstall

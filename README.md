@@ -19,20 +19,24 @@ curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh |
 
 ## Screenshots
 
-Project screenshots are stored in `docs/screenshots/`.
-
-Suggested names:
-
-- `docs/screenshots/dashboard.png`
-- `docs/screenshots/proxy.png`
-- `docs/screenshots/links.png`
-- `docs/screenshots/updates.png`
-
 Gallery:
 
+**Dashboard**
 ![Dashboard](docs/screenshots/dashboard.png)
+
+---
+
+**Proxy**
 ![Proxy](docs/screenshots/proxy.png)
+
+---
+
+**Links**
 ![Links](docs/screenshots/links.png)
+
+---
+
+**Updates**
 ![Updates](docs/screenshots/updates.png)
 
 ## Project Links
