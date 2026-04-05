@@ -30,6 +30,7 @@ PANEL_PORT=8080
 MTPROXY_PORT=443
 GITHUB_REPO="NikitaKHS/mtpanel"
 INSTALL_DIR="/opt/mtpanel"
+MTPROXY_DIR="/opt/mtproxy"
 DATA_DIR="/var/lib/mtpanel"
 CONFIG_DIR="/etc/mtpanel"
 PANEL_USER="mtpanel"
@@ -632,7 +633,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=${DATA_DIR} ${CONFIG_DIR} /opt/mtproxy /etc/systemd/system
+ReadWritePaths=${DATA_DIR} ${CONFIG_DIR} ${MTPROXY_DIR} /etc/systemd/system
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
@@ -804,6 +805,7 @@ main() {
   step "Preparing directories and users"
   create_user "${PANEL_USER}"
   ensure_dir "${INSTALL_DIR}"          root   755
+  ensure_dir "${MTPROXY_DIR}"          root   755
   ensure_dir "${DATA_DIR}"             "${PANEL_USER}" 750
   ensure_dir "${CONFIG_DIR}"           root   755
 
