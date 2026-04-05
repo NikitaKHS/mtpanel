@@ -19,7 +19,7 @@ curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh |
 
 ## Screenshots
 
-Put project screenshots into `docs/screenshots/` and reference them from localized READMEs.
+Project screenshots are stored in `docs/screenshots/`.
 
 Suggested names:
 
@@ -27,6 +27,13 @@ Suggested names:
 - `docs/screenshots/proxy.png`
 - `docs/screenshots/links.png`
 - `docs/screenshots/updates.png`
+
+Gallery:
+
+![Dashboard](docs/screenshots/dashboard.png)
+![Proxy](docs/screenshots/proxy.png)
+![Links](docs/screenshots/links.png)
+![Updates](docs/screenshots/updates.png)
 
 ## Project Links
 

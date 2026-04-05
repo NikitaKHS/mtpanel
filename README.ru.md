@@ -91,9 +91,7 @@ Installer:
 docs/screenshots/dashboard.png
 docs/screenshots/proxy.png
 docs/screenshots/links.png
-docs/screenshots/logs.png
 docs/screenshots/updates.png
-docs/screenshots/settings.png
 ```
 
 Галерея:
@@ -101,9 +99,7 @@ docs/screenshots/settings.png
 ![Обзор](docs/screenshots/dashboard.png)
 ![Прокси](docs/screenshots/proxy.png)
 ![Ссылки](docs/screenshots/links.png)
-![Логи](docs/screenshots/logs.png)
 ![Обновления](docs/screenshots/updates.png)
-![Настройки](docs/screenshots/settings.png)
 
 ## Полное удаление
 
