@@ -156,6 +156,16 @@ func withSPA(api http.Handler, staticRoot string) http.Handler {
 			return
 		}
 
+		if r.URL.Path == "/favicon.ico" {
+			icoPath := filepath.Join(staticRoot, "favicon.ico")
+			if _, err := os.Stat(icoPath); err == nil {
+				http.ServeFile(w, r, icoPath)
+			} else {
+				w.WriteHeader(http.StatusNoContent)
+			}
+			return
+		}
+
 		if _, err := os.Stat(indexPath); err != nil {
 			http.NotFound(w, r)
 			return

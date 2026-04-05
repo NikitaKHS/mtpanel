@@ -36,6 +36,7 @@ PANEL_USER="mtpanel"
 CONFIG_FILE="${CONFIG_DIR}/config.json"
 SERVICE_NAME="mtpanel"
 BINARY_NAME="mtpanel"
+DOWNLOADED_WEB_DIST=""
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -180,7 +181,7 @@ check_deps() {
     HAS_JQ=true
   else
     HAS_JQ=false
-    warn "jq not found вЂ” will use grep/sed to parse GitHub API response"
+    warn "jq not found - will use grep/sed to parse GitHub API response"
   fi
 
   success "Dependency check passed"
@@ -259,6 +260,20 @@ ensure_build_tools() {
       arch)   pkgs+=("go") ;;
     esac
   fi
+  if ! command -v node &>/dev/null; then
+    case "${OS_FAMILY}" in
+      debian) pkgs+=("nodejs") ;;
+      rhel)   pkgs+=("nodejs") ;;
+      arch)   pkgs+=("nodejs") ;;
+    esac
+  fi
+  if ! command -v npm &>/dev/null; then
+    case "${OS_FAMILY}" in
+      debian) pkgs+=("npm") ;;
+      rhel)   pkgs+=("npm") ;;
+      arch)   pkgs+=("npm") ;;
+    esac
+  fi
 
   if [[ ${#pkgs[@]} -gt 0 ]]; then
     step "Installing build tools (fallback mode)"
@@ -269,6 +284,7 @@ ensure_build_tools() {
 
   command -v go &>/dev/null || die "Go compiler is required for source-build fallback but not available"
   command -v git &>/dev/null || die "Git is required for source-build fallback but not available"
+  command -v npm &>/dev/null || die "npm is required for source-build fallback but not available"
 }
 
 build_binary_from_source() {
@@ -279,6 +295,7 @@ build_binary_from_source() {
   local workdir="/tmp/mtpanel-src.$$"
   local repo_url="https://github.com/${GITHUB_REPO}.git"
   local tmp_bin="/tmp/mtpanel-download"
+  local tmp_web="/tmp/mtpanel-web-dist.$$"
 
   rm -rf "${workdir}"
   git clone --depth 1 "${repo_url}" "${workdir}" >/dev/null 2>&1 || \
@@ -290,8 +307,23 @@ build_binary_from_source() {
     CGO_ENABLED=0 GOOS=linux GOARCH="${ARCH}" go build -trimpath -ldflags "-s -w" -o "${tmp_bin}" ./cmd/mtpanel
   ) || die "Source build failed"
 
+  info "Building frontend bundle from source"
+  (
+    cd "${workdir}/frontend" && \
+    npm ci --silent && \
+    npm run build >/dev/null
+  ) || die "Frontend build failed"
+
+  if [[ ! -d "${workdir}/web/dist" ]]; then
+    die "Frontend build finished but web/dist not found"
+  fi
+  rm -rf "${tmp_web}"
+  mkdir -p "${tmp_web}"
+  cp -r "${workdir}/web/dist/." "${tmp_web}/"
+
   chmod +x "${tmp_bin}"
   DOWNLOADED_BINARY="${tmp_bin}"
+  DOWNLOADED_WEB_DIST="${tmp_web}"
   rm -rf "${workdir}"
   success "Source build completed"
 }
@@ -348,7 +380,7 @@ download_binary() {
 create_user() {
   local username="$1"
   if id "${username}" &>/dev/null; then
-    info "User '${username}' already exists вЂ” skipping"
+    info "User '${username}' already exists - skipping"
   else
     info "Creating system user: ${username}"
     useradd --system --no-create-home --shell /sbin/nologin \
@@ -393,7 +425,7 @@ write_config() {
 
   # Generate secrets only if not already present in an existing config
   if [[ -f "${CONFIG_FILE}" ]]; then
-    info "Existing config found at ${CONFIG_FILE} вЂ” preserving secrets"
+    info "Existing config found at ${CONFIG_FILE} - preserving secrets"
     # Extract existing secrets to avoid clobbering them
     if command -v jq &>/dev/null; then
       EXISTING_JWT=$(jq -r '.jwt_secret // empty' "${CONFIG_FILE}" 2>/dev/null || echo "")
@@ -407,13 +439,13 @@ write_config() {
     fi
     JWT_SECRET="${EXISTING_JWT:-$(random_string 32)}"
     MTPROXY_SECRET="${EXISTING_SECRET:-$(random_string 16)}"
-    # Never regenerate password hash вЂ” it might have been changed by user
+    # Never regenerate password hash - it might have been changed by user
     INITIAL_PASSWORD=""
   else
     info "Generating fresh secrets"
     JWT_SECRET=$(random_string 32)
     MTPROXY_SECRET=$(random_string 16)
-    # Generate a random initial password (plain вЂ” panel will hash on first run)
+    # Generate a random initial password (plain - panel will hash on first run)
     INITIAL_PASSWORD=$(random_string 12)
   fi
 
@@ -432,7 +464,7 @@ write_config() {
 }
 EOF
 
-  # Store plain initial password separately for display вЂ” panel reads and deletes it
+  # Store plain initial password separately for display - panel reads and deletes it
   if [[ -n "${INITIAL_PASSWORD:-}" ]]; then
     echo "${INITIAL_PASSWORD}" > "${CONFIG_DIR}/.initial_password"
     chmod 600 "${CONFIG_DIR}/.initial_password"
@@ -451,7 +483,7 @@ write_env_file() {
 
   # Do not overwrite if it already exists (it may contain user customisation)
   if [[ -f "${env_file}" ]]; then
-    info "Environment file already exists: ${env_file} вЂ” skipping"
+    info "Environment file already exists: ${env_file} - skipping"
     return
   fi
 
@@ -466,6 +498,26 @@ EOF
   chown root:${PANEL_USER} "${env_file}"
   chmod 640 "${env_file}"
   success "Environment file written: ${env_file}"
+}
+
+# ---------------------------------------------------------------------------
+# Install frontend static assets
+# ---------------------------------------------------------------------------
+install_frontend_assets() {
+  local target_dir="${INSTALL_DIR}/web/dist"
+
+  if [[ -z "${DOWNLOADED_WEB_DIST:-}" || ! -d "${DOWNLOADED_WEB_DIST}" ]]; then
+    warn "Frontend assets bundle is not available - panel UI may return 404"
+    return
+  fi
+
+  step "Installing frontend assets"
+  rm -rf "${INSTALL_DIR}/web"
+  mkdir -p "${target_dir}"
+  cp -r "${DOWNLOADED_WEB_DIST}/." "${target_dir}/"
+  chown -R root:root "${INSTALL_DIR}/web"
+  chmod -R a+rX "${INSTALL_DIR}/web"
+  success "Frontend assets installed to ${target_dir}"
 }
 
 # ---------------------------------------------------------------------------
@@ -547,14 +599,14 @@ start_panel_service() {
   systemctl daemon-reload
 
   if systemctl is-enabled "${SERVICE_NAME}" &>/dev/null; then
-    info "Service already enabled вЂ” skipping enable"
+    info "Service already enabled - skipping enable"
   else
     systemctl enable "${SERVICE_NAME}"
     success "Service enabled"
   fi
 
   if systemctl is-active "${SERVICE_NAME}" &>/dev/null; then
-    info "Service is running вЂ” restarting to apply new binary"
+    info "Service is running - restarting to apply new binary"
     systemctl restart "${SERVICE_NAME}"
   else
     systemctl start "${SERVICE_NAME}"
@@ -609,7 +661,7 @@ firewall_hints() {
       printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${MTPROXY_PORT}"
       printf "    ${CYAN}iptables-save > /etc/iptables/rules.v4${RESET}\n"
     else
-      info "No firewall detected вЂ” ports should be accessible already"
+      info "No firewall detected - ports should be accessible already"
     fi
   fi
 }
@@ -641,12 +693,9 @@ print_summary() {
   fi
 
   echo ""
-  printf "%s%s%s\n" "${BOLD}${GREEN}" \
-    "в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—" "${RESET}"
-  printf "%s%s%s\n" "${BOLD}${GREEN}" \
-    "в•‘          MTPanel installed successfully!             в•‘" "${RESET}"
-  printf "%s%s%s\n" "${BOLD}${GREEN}" \
-    "в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ" "${RESET}"
+  printf "%s%s%s\n" "${BOLD}${GREEN}" "--------------------------------------------------------" "${RESET}"
+  printf "%s%s%s\n" "${BOLD}${GREEN}" "          MTPanel installed successfully!               " "${RESET}"
+  printf "%s%s%s\n" "${BOLD}${GREEN}" "--------------------------------------------------------" "${RESET}"
   echo ""
   printf "  %sPanel URL:%s       http://%s:%s\n"    "${BOLD}" "${RESET}" "${server_ip}" "${PANEL_PORT}"
   printf "  %sInitial password:%s %s\n"             "${BOLD}" "${RESET}" "${initial_password}"
@@ -669,10 +718,12 @@ print_summary() {
 main() {
   echo ""
   printf "%s%s%s\n" "${BOLD}${CYAN}" \
-    "  MTPanel Installer вЂ” Self-Hosted MTProxy Management" "${RESET}"
+    "  MTPanel Installer - Self-Hosted MTProxy Management" "${RESET}"
   printf "%s%s%s\n" "${CYAN}" \
     "  https://github.com/${GITHUB_REPO}" "${RESET}"
   echo ""
+  info "Прогресс может идти неравномерно, установка продолжается."
+  info "Progress can be non-linear; installation is still in progress."
 
   parse_args "$@"
   require_root
@@ -698,6 +749,7 @@ main() {
   chown root:root "${INSTALL_DIR}/${BINARY_NAME}"
   chmod 755 "${INSTALL_DIR}/${BINARY_NAME}"
   success "Binary installed: ${INSTALL_DIR}/${BINARY_NAME}"
+  install_frontend_assets
 
   write_config
   write_env_file
