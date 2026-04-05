@@ -180,7 +180,7 @@ check_deps() {
     HAS_JQ=true
   else
     HAS_JQ=false
-    warn "jq not found — will use grep/sed to parse GitHub API response"
+    warn "jq not found вЂ” will use grep/sed to parse GitHub API response"
   fi
 
   success "Dependency check passed"
@@ -227,20 +227,18 @@ get_latest_release() {
   local api_url="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
   local response tag
 
-  response=$(download_stdout "${api_url}" 2>/dev/null) || \
-    die "Failed to fetch release info from GitHub API: ${api_url}"
-
-  if [[ "${HAS_JQ}" == "true" ]]; then
-    tag=$(echo "${response}" | jq -r '.tag_name') || \
-      die "Failed to parse release tag from GitHub API response"
-  else
-    tag=$(echo "${response}" | grep -o '"tag_name": *"[^"]*"' | head -1 | \
-          sed 's/.*"tag_name": *"\([^"]*\)".*/\1/') || \
-      die "Failed to parse release tag from GitHub API response"
+  if ! response=$(download_stdout "${api_url}" 2>/dev/null); then
+    return 1
   fi
 
-  [[ -z "${tag}" || "${tag}" == "null" ]] && \
-    die "No release tag found for ${GITHUB_REPO}. Is the repository public with at least one release?"
+  if [[ "${HAS_JQ}" == "true" ]]; then
+    tag=$(echo "${response}" | jq -r '.tag_name') || return 1
+  else
+    tag=$(echo "${response}" | grep -o '"tag_name": *"[^"]*"' | head -1 | \
+          sed 's/.*"tag_name": *"\([^"]*\)".*/\1/') || return 1
+  fi
+
+  [[ -z "${tag}" || "${tag}" == "null" ]] && return 1
 
   echo "${tag}"
 }
@@ -248,41 +246,100 @@ get_latest_release() {
 # ---------------------------------------------------------------------------
 # Download and verify panel binary
 # ---------------------------------------------------------------------------
-download_binary() {
-  step "Downloading MTPanel binary"
+ensure_build_tools() {
+  local pkgs=()
 
-  RELEASE_TAG=$(get_latest_release)
-  info "Latest release: ${RELEASE_TAG}"
-
-  local binary_name="mtpanel-linux-${ARCH}"
-  local checksum_name="mtpanel-linux-${ARCH}.sha256"
-  local base_url="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}"
-  local tmp_bin="/tmp/mtpanel-download"
-  local tmp_sum="/tmp/mtpanel-download.sha256"
-
-  info "Downloading binary: ${binary_name}"
-  download "${base_url}/${binary_name}" "${tmp_bin}" || \
-    die "Failed to download binary from ${base_url}/${binary_name}"
-
-  # Verify checksum if available
-  if download "${base_url}/${checksum_name}" "${tmp_sum}" 2>/dev/null; then
-    info "Verifying checksum..."
-    # The checksum file may contain just the hash or "hash  filename"
-    local expected actual
-    expected=$(awk '{print $1}' "${tmp_sum}")
-    actual=$(sha256sum "${tmp_bin}" | awk '{print $1}')
-    if [[ "${expected}" != "${actual}" ]]; then
-      rm -f "${tmp_bin}" "${tmp_sum}"
-      die "Checksum mismatch! Expected: ${expected}, got: ${actual}"
-    fi
-    success "Checksum verified"
-    rm -f "${tmp_sum}"
-  else
-    warn "No checksum file found — skipping verification"
+  if ! command -v git &>/dev/null; then
+    pkgs+=("git")
   fi
+  if ! command -v go &>/dev/null; then
+    case "${OS_FAMILY}" in
+      debian) pkgs+=("golang-go") ;;
+      rhel)   pkgs+=("golang") ;;
+      arch)   pkgs+=("go") ;;
+    esac
+  fi
+
+  if [[ ${#pkgs[@]} -gt 0 ]]; then
+    step "Installing build tools (fallback mode)"
+    for p in "${pkgs[@]}"; do
+      install_pkg "${p}"
+    done
+  fi
+
+  command -v go &>/dev/null || die "Go compiler is required for source-build fallback but not available"
+  command -v git &>/dev/null || die "Git is required for source-build fallback but not available"
+}
+
+build_binary_from_source() {
+  step "Building MTPanel from source (release fallback)"
+
+  ensure_build_tools
+
+  local workdir="/tmp/mtpanel-src.$$"
+  local repo_url="https://github.com/${GITHUB_REPO}.git"
+  local tmp_bin="/tmp/mtpanel-download"
+
+  rm -rf "${workdir}"
+  git clone --depth 1 "${repo_url}" "${workdir}" >/dev/null 2>&1 || \
+    die "Failed to clone source repository: ${repo_url}"
+
+  info "Compiling MTPanel with Go ($(go version))"
+  (
+    cd "${workdir}" && \
+    CGO_ENABLED=0 GOOS=linux GOARCH="${ARCH}" go build -trimpath -ldflags "-s -w" -o "${tmp_bin}" ./cmd/mtpanel
+  ) || die "Source build failed"
 
   chmod +x "${tmp_bin}"
   DOWNLOADED_BINARY="${tmp_bin}"
+  rm -rf "${workdir}"
+  success "Source build completed"
+}
+
+download_binary() {
+  step "Downloading MTPanel binary"
+
+  RELEASE_TAG=""
+  if RELEASE_TAG=$(get_latest_release); then
+    info "Latest release: ${RELEASE_TAG}"
+
+    local binary_name="mtpanel-linux-${ARCH}"
+    local checksum_name="mtpanel-linux-${ARCH}.sha256"
+    local base_url="https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}"
+    local tmp_bin="/tmp/mtpanel-download"
+    local tmp_sum="/tmp/mtpanel-download.sha256"
+
+    info "Downloading binary: ${binary_name}"
+    if ! download "${base_url}/${binary_name}" "${tmp_bin}" 2>/dev/null; then
+      warn "Release binary not found for ${GITHUB_REPO}/${RELEASE_TAG} (${ARCH})"
+      build_binary_from_source
+      return
+    fi
+
+    # Verify checksum if available
+    if download "${base_url}/${checksum_name}" "${tmp_sum}" 2>/dev/null; then
+      info "Verifying checksum..."
+      # The checksum file may contain just the hash or "hash  filename"
+      local expected actual
+      expected=$(awk '{print $1}' "${tmp_sum}")
+      actual=$(sha256sum "${tmp_bin}" | awk '{print $1}')
+      if [[ "${expected}" != "${actual}" ]]; then
+        rm -f "${tmp_bin}" "${tmp_sum}"
+        die "Checksum mismatch! Expected: ${expected}, got: ${actual}"
+      fi
+      success "Checksum verified"
+      rm -f "${tmp_sum}"
+    else
+      warn "No checksum file found - skipping verification"
+    fi
+
+    chmod +x "${tmp_bin}"
+    DOWNLOADED_BINARY="${tmp_bin}"
+    return
+  fi
+
+  warn "No GitHub release found for ${GITHUB_REPO}; switching to source-build fallback"
+  build_binary_from_source
 }
 
 # ---------------------------------------------------------------------------
@@ -291,7 +348,7 @@ download_binary() {
 create_user() {
   local username="$1"
   if id "${username}" &>/dev/null; then
-    info "User '${username}' already exists — skipping"
+    info "User '${username}' already exists вЂ” skipping"
   else
     info "Creating system user: ${username}"
     useradd --system --no-create-home --shell /sbin/nologin \
@@ -336,7 +393,7 @@ write_config() {
 
   # Generate secrets only if not already present in an existing config
   if [[ -f "${CONFIG_FILE}" ]]; then
-    info "Existing config found at ${CONFIG_FILE} — preserving secrets"
+    info "Existing config found at ${CONFIG_FILE} вЂ” preserving secrets"
     # Extract existing secrets to avoid clobbering them
     if command -v jq &>/dev/null; then
       EXISTING_JWT=$(jq -r '.jwt_secret // empty' "${CONFIG_FILE}" 2>/dev/null || echo "")
@@ -350,13 +407,13 @@ write_config() {
     fi
     JWT_SECRET="${EXISTING_JWT:-$(random_string 32)}"
     MTPROXY_SECRET="${EXISTING_SECRET:-$(random_string 16)}"
-    # Never regenerate password hash — it might have been changed by user
+    # Never regenerate password hash вЂ” it might have been changed by user
     INITIAL_PASSWORD=""
   else
     info "Generating fresh secrets"
     JWT_SECRET=$(random_string 32)
     MTPROXY_SECRET=$(random_string 16)
-    # Generate a random initial password (plain — panel will hash on first run)
+    # Generate a random initial password (plain вЂ” panel will hash on first run)
     INITIAL_PASSWORD=$(random_string 12)
   fi
 
@@ -375,7 +432,7 @@ write_config() {
 }
 EOF
 
-  # Store plain initial password separately for display — panel reads and deletes it
+  # Store plain initial password separately for display вЂ” panel reads and deletes it
   if [[ -n "${INITIAL_PASSWORD:-}" ]]; then
     echo "${INITIAL_PASSWORD}" > "${CONFIG_DIR}/.initial_password"
     chmod 600 "${CONFIG_DIR}/.initial_password"
@@ -394,7 +451,7 @@ write_env_file() {
 
   # Do not overwrite if it already exists (it may contain user customisation)
   if [[ -f "${env_file}" ]]; then
-    info "Environment file already exists: ${env_file} — skipping"
+    info "Environment file already exists: ${env_file} вЂ” skipping"
     return
   fi
 
@@ -490,14 +547,14 @@ start_panel_service() {
   systemctl daemon-reload
 
   if systemctl is-enabled "${SERVICE_NAME}" &>/dev/null; then
-    info "Service already enabled — skipping enable"
+    info "Service already enabled вЂ” skipping enable"
   else
     systemctl enable "${SERVICE_NAME}"
     success "Service enabled"
   fi
 
   if systemctl is-active "${SERVICE_NAME}" &>/dev/null; then
-    info "Service is running — restarting to apply new binary"
+    info "Service is running вЂ” restarting to apply new binary"
     systemctl restart "${SERVICE_NAME}"
   else
     systemctl start "${SERVICE_NAME}"
@@ -552,7 +609,7 @@ firewall_hints() {
       printf "    ${CYAN}iptables -A INPUT -p tcp --dport %s -j ACCEPT${RESET}\n" "${MTPROXY_PORT}"
       printf "    ${CYAN}iptables-save > /etc/iptables/rules.v4${RESET}\n"
     else
-      info "No firewall detected — ports should be accessible already"
+      info "No firewall detected вЂ” ports should be accessible already"
     fi
   fi
 }
@@ -585,11 +642,11 @@ print_summary() {
 
   echo ""
   printf "%s%s%s\n" "${BOLD}${GREEN}" \
-    "╔══════════════════════════════════════════════════════╗" "${RESET}"
+    "в•”в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•—" "${RESET}"
   printf "%s%s%s\n" "${BOLD}${GREEN}" \
-    "║          MTPanel installed successfully!             ║" "${RESET}"
+    "в•‘          MTPanel installed successfully!             в•‘" "${RESET}"
   printf "%s%s%s\n" "${BOLD}${GREEN}" \
-    "╚══════════════════════════════════════════════════════╝" "${RESET}"
+    "в•љв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ќ" "${RESET}"
   echo ""
   printf "  %sPanel URL:%s       http://%s:%s\n"    "${BOLD}" "${RESET}" "${server_ip}" "${PANEL_PORT}"
   printf "  %sInitial password:%s %s\n"             "${BOLD}" "${RESET}" "${initial_password}"
@@ -612,7 +669,7 @@ print_summary() {
 main() {
   echo ""
   printf "%s%s%s\n" "${BOLD}${CYAN}" \
-    "  MTPanel Installer — Self-Hosted MTProxy Management" "${RESET}"
+    "  MTPanel Installer вЂ” Self-Hosted MTProxy Management" "${RESET}"
   printf "%s%s%s\n" "${CYAN}" \
     "  https://github.com/${GITHUB_REPO}" "${RESET}"
   echo ""
