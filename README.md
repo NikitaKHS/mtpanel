@@ -12,12 +12,6 @@ Self-hosted панель для управления **TeleMT** (`Go + SvelteKit
 curl -fsSL https://raw.githubusercontent.com/NikitaKHS/mtpanel/main/install.sh | sudo bash
 ```
 
-## Сценарий использования
-
-1. Откройте консоль вашего VDS у хостинга.
-2. Вставьте команду установки.
-3. После установки управляйте прокси через панель в браузере.
-
 ## Языки
 
 - [Русская версия](README.ru.md)
